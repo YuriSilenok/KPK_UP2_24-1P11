@@ -1,7 +1,5 @@
 """Timeslot Service"""
 
-from datetime import time
-
 from peewee import (
     AutoField,
     BooleanField,
@@ -24,7 +22,7 @@ class DayOfWeek(BaseModel):
     """Справочник дней недели (внутренний)"""
 
     id = AutoField()
-    name = IntegerField(unique=True, null=False)  # 1=Пн .. 7=Вс
+    day_number = IntegerField(unique=True, null=False)  # 1=Пн .. 7=Вс
 
     class Meta:
         db_table = "day_of_week"
@@ -74,7 +72,7 @@ def create_tables():
         DB.create_tables([DayOfWeek, Schedule, Timeslot])
         if not DayOfWeek.select().exists():
             for i in range(1, 8):
-                DayOfWeek.create(name=i)
+                DayOfWeek.create(day_number=i)
 
 
 if __name__ == "__main__":
