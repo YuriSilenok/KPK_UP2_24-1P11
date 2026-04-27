@@ -1,4 +1,4 @@
-"""Timeslot Service"""
+"""Timeslot Service — без отдельной таблицы дней недели"""
 
 from peewee import (
     AutoField,
@@ -18,48 +18,31 @@ class BaseModel(Model):
         database = DB
 
 
-class DayOfWeek(BaseModel):
-    """Справочник дней недели (внутренний)"""
-
-    id = AutoField()
-    day_number = IntegerField(unique=True, null=False)
-
-    class Meta:
-        db_table = "day_of_week"
-
-
 class Schedule(BaseModel):
     """
-    Расписание звонков для группы и подгруппы.
-    external_group_id - Group Service
-    external_subgroup_id - Subgroup Service
-    day_of_week - день недели
+    Расписание звонков для группы/подгруппы в конкретный день недели.
     """
 
     id = AutoField()
-    external_group_id = IntegerField(null=False)  # заглушка Group Service
-    external_subgroup_id = IntegerField(
-        null=False
-    )  # заглушка Subgroup Service, 0 = группа в целом
-    day_of_week = ForeignKeyField(DayOfWeek, backref="schedules", null=False)
+    group_id = IntegerField(null=False)  # заглушка Group Service
+    subgroup_id = IntegerField(null=False)  # 0 = основная группа, >0 подгруппа
+    day_of_week = IntegerField(null=False)  # 1=Пн .. 7=Вс
 
     class Meta:
-        indexes = (
-            (("external_group_id", "external_subgroup_id", "day_of_week"), True),
-        )
+        indexes = ((("group_id", "subgroup_id", "day_of_week"), True),)
 
 
 class Timeslot(BaseModel):
     """
-    Временной слот – пара или перемена. Порядок задаётся order_number.
+    Временной слот – занятие или перемена.
     """
 
     id = AutoField()
     schedule = ForeignKeyField(
         Schedule, backref="timeslots", on_delete="CASCADE", null=False
     )
-    order_number = IntegerField(null=False)
-    is_lesson = BooleanField(null=False)  # True = пара, False = перемена
+    order_number = IntegerField(null=False)  # порядок: 1,2,3...
+    is_lesson = BooleanField(null=False)  # True = занятие, False = перемена
     start_time = TimeField(null=False)
     end_time = TimeField(null=False)
 
@@ -73,17 +56,14 @@ def verify_group_exists(group_id: int) -> bool:
 
 
 def verify_subgroup_exists(subgroup_id: int) -> bool:
-    """Заглушка для Subgroup Service"""
+    """Заглушка для Subgroup Service: 0 – группа, 1..50 – подгруппа"""
     return 0 <= subgroup_id <= 50
 
 
 def create_tables():
-    """Создаёт таблицы и заполняет дни недели"""
+    """Создаёт таблицы (без DayOfWeek)"""
     with DB:
-        DB.create_tables([DayOfWeek, Schedule, Timeslot])
-        if not DayOfWeek.select().exists():
-            for i in range(1, 8):
-                DayOfWeek.create(day_number=i)
+        DB.create_tables([Schedule, Timeslot])
 
 
 if __name__ == "__main__":
