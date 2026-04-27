@@ -1,4 +1,4 @@
-"""Timeslot Service without fake dependencies"""
+"""Timeslot Service"""
 
 from datetime import time
 
@@ -21,11 +21,10 @@ class BaseModel(Model):
 
 
 class DayOfWeek(BaseModel):
-    """Справочник дней недели."""
+    """Справочник дней недели (внутренний)"""
 
     id = AutoField()
-    name = IntegerField(unique=True, null=False)  # 1=Monday .. 7=Sunday
-    # можно добавить order_index, но name уже порядок
+    name = IntegerField(unique=True, null=False)  # 1=Пн .. 7=Вс
 
     class Meta:
         db_table = "day_of_week"
@@ -33,43 +32,44 @@ class DayOfWeek(BaseModel):
 
 class Schedule(BaseModel):
     """
-    Расписание звонков для конкретной комбинации:
-    - внешний id корпуса (из Campus Service)
-    - внутренний day_of_week_id
-    - тип дня (обычный/сокращённый)
+    Расписание звонков для корпуса и дня недели.
+    Без флага сокращённого дня.
     """
 
     id = AutoField()
     external_building_id = IntegerField(null=False)  # заглушка Campus Service
     day_of_week = ForeignKeyField(DayOfWeek, backref="schedules", null=False)
-    is_shortened = BooleanField(default=False, null=False)
 
     class Meta:
-        indexes = ((("external_building_id", "day_of_week", "is_shortened"), True),)
+        indexes = ((("external_building_id", "day_of_week"), True),)
 
 
 class Timeslot(BaseModel):
-    """Временной слот (пара)"""
+    """
+    Временной слот – может быть парой или переменой.
+    Порядок задаётся order_number.
+    """
 
     id = AutoField()
     schedule = ForeignKeyField(
         Schedule, backref="timeslots", on_delete="CASCADE", null=False
     )
-    pair_number = IntegerField(null=False)
+    order_number = IntegerField(null=False)  # порядковый номер события (1,2,3,...)
+    is_lesson = BooleanField(null=False)  # True = пара, False = перемена
     start_time = TimeField(null=False)
     end_time = TimeField(null=False)
 
     class Meta:
-        indexes = ((("schedule", "pair_number"), True),)
+        indexes = ((("schedule", "order_number"), True),)
 
 
 def verify_building_exists(building_id: int) -> bool:
-    """Заглушка для Campus Service (реальный сервис существует)"""
+    """Заглушка для Campus Service"""
     return 1 <= building_id <= 10
 
 
 def create_tables():
-    """Создаёт таблицы в БД и заполняет дни недели"""
+    """Создаёт таблицы и заполняет дни недели"""
     with DB:
         DB.create_tables([DayOfWeek, Schedule, Timeslot])
         if not DayOfWeek.select().exists():
