@@ -1,9 +1,11 @@
-"""Timeslot Service"""
+"""Timeslot Service without fake dependencies"""
 
 from datetime import time
+
 from peewee import (
     AutoField,
     BooleanField,
+    ForeignKeyField,
     IntegerField,
     Model,
     SqliteDatabase,
@@ -14,33 +16,40 @@ DB = SqliteDatabase("timeslot.db")
 
 
 class BaseModel(Model):
-     """Базовая модель"""
-    
     class Meta:
         database = DB
+
+
+class DayOfWeek(BaseModel):
+    """Справочник дней недели."""
+
+    id = AutoField()
+    name = IntegerField(unique=True, null=False)  # 1=Monday .. 7=Sunday
+    # можно добавить order_index, но name уже порядок
+
+    class Meta:
+        db_table = "day_of_week"
 
 
 class Schedule(BaseModel):
     """
     Расписание звонков для конкретной комбинации:
     - внешний id корпуса (из Campus Service)
-    - внешний id дня недели (из DayOfWeek Service)
+    - внутренний day_of_week_id
     - тип дня (обычный/сокращённый)
     """
 
     id = AutoField()
     external_building_id = IntegerField(null=False)  # заглушка Campus Service
-    external_day_of_week_id = IntegerField(null=False)  # заглушка DayOfWeek Service
+    day_of_week = ForeignKeyField(DayOfWeek, backref="schedules", null=False)
     is_shortened = BooleanField(default=False, null=False)
 
     class Meta:
-        indexes = (
-            (("external_building_id", "external_day_of_week_id", "is_shortened"), True),
-        )
+        indexes = ((("external_building_id", "day_of_week", "is_shortened"), True),)
 
 
 class Timeslot(BaseModel):
-    """Привязка к расписанию, номер пары, время"""
+    """Временной слот (пара)"""
 
     id = AutoField()
     schedule = ForeignKeyField(
@@ -55,21 +64,17 @@ class Timeslot(BaseModel):
 
 
 def verify_building_exists(building_id: int) -> bool:
-    """Campus Service"""
-    # Имитация существования с id 1..10
+    """Заглушка для Campus Service (реальный сервис существует)"""
     return 1 <= building_id <= 10
 
 
-def verify_day_of_week_exists(day_of_week_id: int) -> bool:
-    """DayOfWeek Service"""
-    # id 1..7 соответствуют понедельник..воскресенье
-    return 1 <= day_of_week_id <= 7
-
-
 def create_tables():
-    """Создаёт таблицы в БД"""
+    """Создаёт таблицы в БД и заполняет дни недели"""
     with DB:
-        DB.create_tables([Schedule, Timeslot])
+        DB.create_tables([DayOfWeek, Schedule, Timeslot])
+        if not DayOfWeek.select().exists():
+            for i in range(1, 8):
+                DayOfWeek.create(name=i)
 
 
 if __name__ == "__main__":
