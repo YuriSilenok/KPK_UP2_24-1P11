@@ -15,7 +15,6 @@
 | Поле | Тип | Ограничения |
 |---|---|---|
 | id | Integer | PK |
-| full_name | Varchar | NOT NULL |
 | birth_date | Date | NOT NULL |
 | student_number | Varchar | UNIQUE |
 | current_group_id | Integer | FK |
@@ -28,7 +27,6 @@
 | Поле | Тип | Ограничения |
 |---|---|---|
 | id | Integer | PK |
-| group_name | Varchar | UNIQUE |
 | speciality | Varchar | NOT NULL |
 | course_year | Integer | 1-4 |
 
@@ -118,3 +116,6 @@
 
 ### Delete
 - удаление записи движения
+
+### ER-диаграмма
+![Диаграмма](erd.png)
