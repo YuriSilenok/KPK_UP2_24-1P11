@@ -32,5 +32,5 @@ class LoadAssignment(BaseModel):
 
     class Meta:
         indexes = (
-            (('teacher', 'discipline', 'group', 'semester'), True),  # уникальная комбинация
+            (('teacher', 'discipline', 'group', 'semester'), True),
         )
