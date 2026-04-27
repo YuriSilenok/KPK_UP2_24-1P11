@@ -14,7 +14,6 @@
 | Поле | Тип | Ограничения |
 |---|---|---|
 | id | Integer | PK |
-| birth_date | Date | NOT NULL |
 | student_number | Varchar | UNIQUE |
 | current_group_id | Integer | FK |
 | status | Varchar | NOT NULL |
