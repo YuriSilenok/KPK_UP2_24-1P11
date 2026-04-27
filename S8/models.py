@@ -37,37 +37,13 @@ class Subgroup(BaseModel):
     
     class Meta:
         table_name = 'subgroups'
-        # Уникальная комбинация: в одной группе не может быть двух подгрупп
+        # Уникальная комбинация: в одной группе не может быть двух подгрупп одного типа
         indexes = (
-            (('group_id',), True),
+            (('group_id', 'type'), True),
         )
     
     def __str__(self):
         return f"Подгруппа {self.type} (группа {self.group_id})"
-
-
-class StudentInSubgroup(BaseModel):
-    """
-    Транзитивная модель для связи многие-ко-многим между подгруппой и студентом
-    
-    Поля:
-    - id: первичный ключ
-    - subgroup: внешний ключ к подгруппе
-    - student_id: внешний ключ к студенту (из сервиса студентов)
-    """
-    id = AutoField()
-    subgroup = ForeignKeyField(Subgroup, backref='students', verbose_name='Подгруппа')
-    student_id = IntegerField(verbose_name='ID студента')
-    
-    class Meta:
-        table_name = 'student_in_subgroups'
-        # Уникальная комбинация: один студент не может быть дважды в одной подгруппе
-        indexes = (
-            (('subgroup', 'student_id'), True),
-        )
-    
-    def __str__(self):
-        return f"Студент {self.student_id} в подгруппе {self.subgroup.type}"
 
 
 def init_db():
@@ -79,12 +55,11 @@ def init_db():
         # Подключаемся к БД
         db.connect()
         
-        # Создаём таблицы
-        db.create_tables([Subgroup, StudentInSubgroup], safe=True)
+        # Создаём таблицы (только Subgroup)
+        db.create_tables([Subgroup], safe=True)
         
         print(f"✅ База данных '{DB_PATH}' успешно инициализирована")
         print(f"   - Создана таблица: {Subgroup._meta.table_name}")
-        print(f"   - Создана таблица: {StudentInSubgroup._meta.table_name}")
         
     except Exception as e:
         print(f"❌ Ошибка при инициализации БД: {e}")
