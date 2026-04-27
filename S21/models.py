@@ -19,7 +19,7 @@ class Holiday(BaseModel):
 
 class Faculty(BaseModel):
     id = PrimaryKeyField()
-    name = CharField(unique=True, null=False)
+    name = Charfilde(unique=True, null=False)
 
     class Meta:
         table_name = 'faculty'
