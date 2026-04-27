@@ -24,12 +24,10 @@ class Subgroup(BaseModel):
     
     Поля:
     - id: первичный ключ
-    - name: название подгруппы
     - type: тип подгруппы (language/sport/other)
     - group_id: внешний ключ к группе (из сервиса групп)
     """
     id = AutoField()
-    name = CharField(max_length=100, verbose_name='Название подгруппы')
     type = CharField(
         max_length=20,
         choices=['language', 'sport', 'other'],
@@ -39,13 +37,13 @@ class Subgroup(BaseModel):
     
     class Meta:
         table_name = 'subgroups'
-        # Уникальная комбинация: в одной группе не может быть двух подгрупп с одинаковым названием
+        # Уникальная комбинация: в одной группе не может быть двух подгрупп
         indexes = (
-            (('group_id', 'name'), True),
+            (('group_id',), True),
         )
     
     def __str__(self):
-        return f"{self.name} (группа {self.group_id})"
+        return f"Подгруппа {self.type} (группа {self.group_id})"
 
 
 class StudentInSubgroup(BaseModel):
@@ -69,7 +67,7 @@ class StudentInSubgroup(BaseModel):
         )
     
     def __str__(self):
-        return f"Студент {self.student_id} в подгруппе {self.subgroup.name}"
+        return f"Студент {self.student_id} в подгруппе {self.subgroup.type}"
 
 
 def init_db():
