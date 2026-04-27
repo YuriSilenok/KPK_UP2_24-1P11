@@ -1,7 +1,6 @@
 """Timeslot Service"""
 
 from datetime import time
-
 from peewee import (
     AutoField,
     BooleanField,
@@ -15,6 +14,8 @@ DB = SqliteDatabase("timeslot.db")
 
 
 class BaseModel(Model):
+     """Базовая модель"""
+    
     class Meta:
         database = DB
 
