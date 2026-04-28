@@ -52,12 +52,12 @@ class Timeslot(BaseModel):
 
 def verify_group_exists(group_id: int) -> bool:
     """Заглушка для Group Service"""
-    return 1 <= group_id <= 20
+    return 1 <= group_id
 
 
 def verify_subgroup_exists(subgroup_id: int) -> bool:
-    """Заглушка для Subgroup Service: 0 – группа, 1..50 – подгруппа"""
-    return 0 <= subgroup_id <= 50
+    """Заглушка для Subgroup Service"""
+    return 0 <= subgroup_id
 
 
 def create_tables():
