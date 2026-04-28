@@ -1,4 +1,4 @@
-"""
+"""""
 Модели для сервиса подгрупп (Subgroup Service) - Вариант 8
 """
 
@@ -21,15 +21,9 @@ class BaseModel(Model):
 class Subgroup(BaseModel):
     """
     Модель подгруппы
-    
-    
     """
     id = AutoField()
-    name = CharField(
-        max_length=20,
-        choices=['language', 'sport', 'other'],
-        verbose_name='Тип подгруппы'
-    )
+    name = ForeignKeyField(verbose_name='ID типа подгруппы')
     group_id = IntegerField(verbose_name='ID группы')
     
     class Meta:
@@ -42,6 +36,25 @@ class Subgroup(BaseModel):
         return f"Подгруппа {self.name} (группа {self.group_id})"
 
 
+class SubgroupStudent(BaseModel):
+    """
+    Модель связи подгруппы и студента
+    (Подгруппа_Студент)
+    """
+    id = AutoField()
+    subgroup_id = IntegerField(verbose_name='ID подгруппы')  # FK на Subgroup
+    student_id = IntegerField(verbose_name='ID студента')   # FK на Student
+    
+    class Meta:
+        table_name = 'subgroup_students'
+        indexes = (
+            (('subgroup_id', 'student_id'), True),  # Уникальная пара подгруппа-студент
+        )
+    
+    def __str__(self):
+        return f"Студент {self.student_id} в подгруппе {self.subgroup_id}"
+
+
 def init_db():
     """
     Функция инициализации базы данных
@@ -51,11 +64,12 @@ def init_db():
         # Подключаемся к БД
         db.connect()
         
-        # Создаём таблицы (только Subgroup)
-        db.create_tables([Subgroup], safe=True)
+        # Создаём таблицы (Subgroup и SubgroupStudent)
+        db.create_tables([Subgroup, SubgroupStudent], safe=True)
         
         print(f"✅ База данных '{DB_PATH}' успешно инициализирована")
         print(f"   - Создана таблица: {Subgroup._meta.table_name}")
+        print(f"   - Создана таблица: {SubgroupStudent._meta.table_name}")
         
     except Exception as e:
         print(f"❌ Ошибка при инициализации БД: {e}")
