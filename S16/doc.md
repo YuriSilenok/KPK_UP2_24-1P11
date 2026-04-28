@@ -153,6 +153,6 @@
 | id | integer |
 | title | string |
 
-### ER-диаграмма
+#### ER-диаграмма
 
 [ER-диаграмма](erd.png)
