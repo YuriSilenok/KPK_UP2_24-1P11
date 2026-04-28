@@ -9,9 +9,13 @@ class Specialty(Model):
         database = db
 
 class FGOS(Model):
-    code = CharField(unique=True)
+    code = CharField() 
+    generation = CharField()  
     class Meta:
         database = db
+        indexes = (
+            (('code', 'generation'), True),  
+        )
 
 class SpecialtyFGOS(Model):
     specialty = ForeignKeyField(Specialty)
