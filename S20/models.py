@@ -9,23 +9,21 @@ class BaseModel(Model):
         database = db
 
 class AcademicPeriod(BaseModel):
-    name = CharField(max_length=100)  # исправлено: title -> name
+    name = CharField(max_length=100)
+    academic_year = CharField(max_length=9, null=True)  # Формат 2025-2026, необязательный
     type = CharField(max_length=20)  # semester, module
     start_date = DateField()
     end_date = DateField()
-    parent = IntegerField(default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
+    parent_period_id = IntegerField(default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
 
-class Teacher(BaseModel):
-    name = CharField(max_length=100)
-    email = CharField(unique=True)
-
-class PeriodTeacher(BaseModel):
-    period = ForeignKeyField(AcademicPeriod, backref='teachers_link')
-    teacher = ForeignKeyField(Teacher, backref='periods_link')
+    class Meta:
+        indexes = (
+            (('name', 'academic_year'), True),  # уникальная комбинация
+        )
 
 def init_db():
     db.connect()
-    db.create_tables([AcademicPeriod, Teacher, PeriodTeacher], safe=True)
+    db.create_tables([AcademicPeriod], safe=True)
     db.close()
 
 def get_db_init_handler():
