@@ -26,7 +26,7 @@ class Schedule(BaseModel):
     id = AutoField()
     group_id = IntegerField(null=False)  # заглушка Group Service
     subgroup_id = IntegerField(null=False)  # 0 = основная группа, >0 подгруппа
-    day_of_week = IntegerField(null=False)  # 1=Пн .. 7=Вс
+    day_of_week = IntegerField(null=False)
 
     class Meta:
         indexes = ((("group_id", "subgroup_id", "day_of_week"), True),)
@@ -41,7 +41,7 @@ class Timeslot(BaseModel):
     schedule = ForeignKeyField(
         Schedule, backref="timeslots", on_delete="CASCADE", null=False
     )
-    order_number = IntegerField(null=False)  # порядок: 1,2,3...
+    order_number = IntegerField(null=False)
     is_lesson = BooleanField(null=False)  # True = занятие, False = перемена
     start_time = TimeField(null=False)
     end_time = TimeField(null=False)
