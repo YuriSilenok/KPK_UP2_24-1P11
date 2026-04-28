@@ -9,9 +9,10 @@ class BaseModel(Model):
 class Holiday(BaseModel):
     id = PrimaryKeyField()
     name = CharField(max_length=100, unique=True, null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=False)
-    type = CharField(default='holiday', null=False)
+    date = DateField(null=True)  # Для праздников (конкретный день)
+    start_date = DateField(null=True)  # Для каникул (начало диапазона)
+    end_date = DateField(null=True)  # Для каникул (конец диапазона)
+    type = CharField(choices=['holiday', 'vacation'], default='holiday', null=False)
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
