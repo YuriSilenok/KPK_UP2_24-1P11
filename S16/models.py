@@ -9,7 +9,7 @@ class BaseModel(Model):
 class Campus(BaseModel):
     id = PrimaryKeyField()
     name = CharField(max_length=50, unique=True, null=False)
-    address = TextField(null=False)
+    address = CharField(max_length=200, null=False)
     floors = IntegerField(null=False)
     is_active = BooleanField(default=True, null=False)
 
