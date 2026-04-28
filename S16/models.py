@@ -9,7 +9,7 @@ class BaseModel(Model):
 class Campus(BaseModel):
     id = PrimaryKeyField()
     name = CharField(max_length=50, unique=True, null=False)
-    address = CharField(max_length=200, null=False)
+    address = CharField(max_length=200, null=False)  # Вернул CharField, как просил препод
     floors = IntegerField(null=False)
     is_active = BooleanField(default=True, null=False)
 
@@ -37,24 +37,10 @@ class Campus(BaseModel):
         
         return query
 
-class Amenity(BaseModel):
-    id = PrimaryKeyField()
-    title = CharField(max_length=100, unique=True, null=False)
-
-    class Meta:
-        table_name = 'amenity'
-
-class CampusAmenity(BaseModel):
-    campus = ForeignKeyField(Campus, backref='amenities', on_delete='CASCADE', null=False)
-    amenity = ForeignKeyField(Amenity, backref='campuses', on_delete='CASCADE', null=False)
-
-    class Meta:
-        table_name = 'campus_amenity'
-        primary_key = CompositeKey('campus', 'amenity')
-
 def init_db():
     db.connect()
-    db.create_tables([Campus, Amenity, CampusAmenity], safe=True)
+    # Создаем только таблицу Campus
+    db.create_tables([Campus], safe=True)
     db.close()
 
 if __name__ == '__main__':
