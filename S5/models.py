@@ -10,7 +10,6 @@ class Department(Model):
     """Модель отделения/факультета (без NULL-полей)"""
     name = CharField(max_length=100, unique=True, null=False, verbose_name="Название отделения")
     phone = CharField(max_length=20, null=False, default='', verbose_name="Телефон")
-    campus = CharField(max_length=50, null=False, default='', verbose_name="Корпус")
 
     class Meta:
         database = db
@@ -25,18 +24,16 @@ def init_db():
 class DepartmentCreate(BaseModel):
     name: str = Field(..., max_length=100, description="Название отделения")
     phone: Optional[str] = Field('', max_length=20, description="Телефон")
-    campus: Optional[str] = Field('', max_length=50, description="Корпус")
 
 class DepartmentUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100, description="Название отделения")
     phone: Optional[str] = Field(None, max_length=20, description="Телефон")
-    campus: Optional[str] = Field(None, max_length=50, description="Корпус")
 
 class DepartmentOut(BaseModel):
     id: int
     name: str
     phone: str
-    campus: str
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,8 +61,7 @@ def create_department(dept: DepartmentCreate):
         raise HTTPException(400, "Отделение с таким названием уже существует")
     new_dept = Department.create(
         name=dept.name,
-        phone=dept.phone or '',
-        campus=dept.campus or ''
+        phone=dept.phone or ''
     )
     db.close()
     return new_dept
@@ -82,14 +78,12 @@ def get_department(dept_id: int):
         db.close()
 
 @app.get("/departments", response_model=List[DepartmentOut])
-def list_departments(name: Optional[str] = None, campus: Optional[str] = None, limit: int = 100, offset: int = 0):
+def list_departments(name: Optional[str] = None, limit: int = 100):
     db.connect()
     query = Department.select()
     if name:
         query = query.where(Department.name.contains(name))
-    if campus:
-        query = query.where(Department.campus.contains(campus))
-    result = list(query.offset(offset).limit(limit))
+    result = list(query.limit(limit))
     db.close()
     return result
 
@@ -107,8 +101,6 @@ def update_department(dept_id: int, dept: DepartmentUpdate):
         update_data['name'] = dept.name
     if dept.phone is not None:
         update_data['phone'] = dept.phone
-    if dept.campus is not None:
-        update_data['campus'] = dept.campus
     if update_data:
         Department.update(update_data).where(Department.id == dept_id).execute()
     updated = Department.get_by_id(dept_id)
@@ -143,3 +135,4 @@ if __name__ == "__main__":
     print("Документация API: http://localhost:8000/docs")
     print("=" * 50)
     uvicorn.run(app, host="127.0.0.1", port=8000)
+    
