@@ -9,11 +9,11 @@ class BaseModel(Model):
         database = db
 
 class AcademicPeriod(BaseModel):
-    title = CharField(max_length=100)
+    name = CharField(max_length=100)  # исправлено: title -> name
     type = CharField(max_length=20)  # semester, module
     start_date = DateField()
     end_date = DateField()
-    parent = ForeignKeyField('self', backref='children', null=True)
+    parent = IntegerField(default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
 
 class Teacher(BaseModel):
     name = CharField(max_length=100)
