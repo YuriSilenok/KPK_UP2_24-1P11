@@ -24,20 +24,15 @@ class Subgroup(BaseModel):
     
     Поля:
     - id: первичный ключ
-    - type: тип подгруппы (language/sport/other)
+    - type: тип подгруппы (1=language, 2=sport, 3=other)
     - group_id: внешний ключ к группе (из сервиса групп)
     """
     id = AutoField()
-    type = CharField(
-        max_length=20,
-        choices=['language', 'sport', 'other'],
-        verbose_name='Тип подгруппы'
-    )
+    type = IntegerField(verbose_name='Тип подгруппы')
     group_id = IntegerField(verbose_name='ID группы')
     
     class Meta:
         table_name = 'subgroups'
-        # Уникальная комбинация: в одной группе не может быть двух подгрупп одного типа
         indexes = (
             (('group_id', 'type'), True),
         )
