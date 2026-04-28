@@ -7,12 +7,15 @@ class BaseModel(Model):
     class Meta:
         database = db
 
+class EquipmentType(BaseModel):
+    name = CharField(max_length=100, unique=True)  # projector, computers, machines, boards, other
+
 class Equipment(BaseModel):
-    name = CharField(max_length=255, constraints=[Check('length(name) >= 1')])
-    type = CharField(max_length=50)  # проектор, компьютеры, станки, доски, другое
+    name = CharField(max_length=100, constraints=[Check('length(name) >= 1 AND length(name) <= 100')])
+    type_id = ForeignKeyField(EquipmentType, backref='equipment', field='id', on_delete='RESTRICT')
     room_id = IntegerField()  # внешний ключ к Room Service, но здесь без FK
-    status = CharField(max_length=20, default='active')
-    inventory_number = CharField(max_length=50, unique=True, null=True)
+    status = CharField(max_length=20, default='active', constraints=[Check("status IN ('active', 'broken', 'maintenance')")])
+    inventory_number = CharField(max_length=50, unique=True, null=True)  # может быть NULL
     description = TextField(default='')
 
     class Meta:
@@ -22,7 +25,15 @@ class Equipment(BaseModel):
 
 def init_db():
     db.connect()
-    db.create_tables([Equipment], safe=True)
+    # Создаём таблицы в правильном порядке (сначала EquipmentType, затем Equipment)
+    db.create_tables([EquipmentType, Equipment], safe=True)
+    
+    # Заполняем таблицу типов начальными данными, если она пуста
+    if EquipmentType.select().count() == 0:
+        default_types = ['projector', 'computers', 'machines', 'boards', 'other']
+        for type_name in default_types:
+            EquipmentType.create(name=type_name)
+    
     db.close()
 
 # точка входа для инициализации
