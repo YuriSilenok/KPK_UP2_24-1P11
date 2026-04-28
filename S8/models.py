@@ -22,23 +22,24 @@ class Subgroup(BaseModel):
     """
     Модель подгруппы
     
-    Поля:
-    - id: первичный ключ
-    - type: тип подгруппы (1=language, 2=sport, 3=other)
-    - group_id: внешний ключ к группе (из сервиса групп)
+    
     """
     id = AutoField()
-    type = IntegerField(verbose_name='Тип подгруппы')
+    name = CharField(
+        max_length=20,
+        choices=['language', 'sport', 'other'],
+        verbose_name='Тип подгруппы'
+    )
     group_id = IntegerField(verbose_name='ID группы')
     
     class Meta:
         table_name = 'subgroups'
         indexes = (
-            (('group_id', 'type'), True),
+            (('group_id', 'name'), True),
         )
     
     def __str__(self):
-        return f"Подгруппа {self.type} (группа {self.group_id})"
+        return f"Подгруппа {self.name} (группа {self.group_id})"
 
 
 def init_db():
