@@ -153,7 +153,6 @@
 | id | integer |
 | title | string |
 
-```markdown
 ### ER-диаграмма
 
 [ER-диаграмма](erd.png)
