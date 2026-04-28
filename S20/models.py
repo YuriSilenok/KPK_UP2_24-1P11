@@ -10,7 +10,7 @@ class BaseModel(Model):
 
 class AcademicPeriod(BaseModel):
     name = CharField(max_length=100)
-    academic_year = CharField(max_length=9, null=True)  # Формат 2025-2026, необязательный
+    academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, необязательный
     type = CharField(max_length=20)  # semester, module
     start_date = DateField()
     end_date = DateField()
