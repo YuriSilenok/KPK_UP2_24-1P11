@@ -11,12 +11,10 @@ from peewee import (
 
 DB = SqliteDatabase('group_service_s7.db')
 
-
 class BaseModel(Model):
     """Базовая модель"""
     class Meta:
         database = DB
-
 
 class GroupStatus(BaseModel):
     """Класс статуса группы"""
@@ -25,7 +23,6 @@ class GroupStatus(BaseModel):
 
     class Meta:
         table_name = 'statusgroup'
-
 
 class Group(BaseModel):
     """Класс учебной группы"""
@@ -50,17 +47,13 @@ class Group(BaseModel):
     class Meta:
         table_name = 'groups'
 
-
 def create_tables():
     """Создаёт таблицы и заполняет справочник"""
     with DB:
         DB.create_tables([GroupStatus, Group])
-        
-        # Заполнение справочника статусов
         if GroupStatus.select().count() == 0:
             GroupStatus.create(title="Активна")
             GroupStatus.create(title="Выпустилась")
-
 
 if __name__ == "__main__":
     create_tables()
