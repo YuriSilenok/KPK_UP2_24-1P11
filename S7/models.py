@@ -1,0 +1,76 @@
+"""База данных Group Service (Вариант №7)"""
+from peewee import (
+    Model,
+    CharField,
+    IntegerField,
+    ForeignKeyField,
+    AutoField,
+    SqliteDatabase,
+    Check
+)
+
+# Подключение к базе данных твоего сервиса
+DB = SqliteDatabase('group_service_s7.db')
+
+
+class BaseModel(Model):
+    """Базовая модель"""
+    class Meta:
+        database = DB
+
+
+class GroupStatus(BaseModel):
+    """Класс статуса группы (Активна / Выпустилась)"""
+    id = AutoField()
+    title = CharField(unique=True, null=False)
+
+    class Meta:
+        table_name = 'statusgroup'
+
+
+class Group(BaseModel):
+    """Класс учебной группы колледжа"""
+    id = AutoField()
+    name = CharField(unique=True, null=False)
+    
+    # Ограничение по году (>= 2000) 
+    formation_year = IntegerField(
+        null=False, 
+        constraints=[Check('formation_year >= 2000')]
+    )
+    
+    # Ограничение по базе (9 или 11 класс)
+    education_base = IntegerField(
+        null=False, 
+        constraints=[Check('education_base IN (9, 11)')]
+    )
+    
+    # Связь со статусом, значение по умолчанию 1
+    status = ForeignKeyField(
+        GroupStatus, 
+        backref='groups', 
+        null=False, 
+        default=1
+    )
+    
+    # Внешний ID куратора
+    curator_id = IntegerField(null=False)
+
+    class Meta:
+        table_name = 'groups'
+
+
+def create_tables():
+    """Создаёт таблицы и заполняет справочник статусов"""
+    with DB:
+        DB.create_tables([GroupStatus, Group])
+        
+        # Автоматическое наполнение справочника при первом запуске
+        if GroupStatus.select().count() == 0:
+            GroupStatus.create(title="Активна")
+            GroupStatus.create(title="Выпустилась")
+
+
+if __name__ == "__main__":
+    create_tables()
+    print("S7 Group Service: БД успешно инициализирована.")
