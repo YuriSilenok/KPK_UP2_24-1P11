@@ -122,16 +122,16 @@
 | Параметр | Обязательность | Тип | Значение по умолчанию |
 |----------|----------------|-----|----------------------|
 | profile_id | Обязательно | Целое | — |
-| phone_notification | Не обязательно | Логичееский | — |
-| email_notification | Не обязательно | Логичееский | — |
+| phone_notification | Не обязательно | Логический | — |
+| email_notification | Не обязательно | Логический | — |
 
 Выходные данные
 
 | Параметр | Тип |
 |----------|-----|
 | profile_id | Целое |
-| phone_notification | Логичееский |
-| email_notification | Логичееский |
+| phone_notification | Логический |
+| email_notification | Логический |
 
 ## Получить настройки уведомлений по profile_id
 
@@ -150,8 +150,8 @@
 | Параметр | Тип |
 |----------|-----|
 | profile_id | Целое |
-| phone_notification | Логичееский |
-| email_notification | Логичееский |
+| phone_notification | Логический |
+| email_notification | Логический |
 
 ## ER-диаграмма
 
