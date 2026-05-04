@@ -1,0 +1,18 @@
+name: "Auto Assign Reviewers"
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: wow-actions/auto-assign@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Список всех возможных ревьюверов
+          reviewers: |
+            Bormerd
+            VeraMol06
+            YuriSilenok
+          numberOfReviewers: 1
