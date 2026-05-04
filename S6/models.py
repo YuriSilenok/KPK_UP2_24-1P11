@@ -5,28 +5,34 @@ db = SqliteDatabase('specialties.db')
 class Specialty(Model):
     code = CharField(unique=True)
     name = CharField()
+
     class Meta:
         database = db
 
+
 class FGOS(Model):
-    code = CharField() 
-    generation = CharField()  
+    code = CharField(unique=True)
+
     class Meta:
         database = db
-        indexes = (
-            (('code', 'generation'), True),  
-        )
+
 
 class SpecialtyFGOS(Model):
     specialty = ForeignKeyField(Specialty)
     fgos = ForeignKeyField(FGOS)
+
     class Meta:
         database = db
+        indexes = (
+            (('specialty', 'fgos'), True),
+        )
+
 
 def init_db():
     db.connect()
     db.create_tables([Specialty, FGOS, SpecialtyFGOS], safe=True)
     db.close()
+
 
 if __name__ == "__main__":
     init_db()
