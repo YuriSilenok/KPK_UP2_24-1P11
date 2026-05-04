@@ -9,7 +9,7 @@ db = SqliteDatabase('departments.db')
 class Department(Model):
     """Модель отделения/факультета (без NULL-полей)"""
     name = CharField(max_length=100, unique=True, null=False, verbose_name="Название отделения")
-    phone = CharField(max_length=20, null=False, default='', verbose_name="Телефон")
+    phone = CharField(max_length=20, unique=True, null=False, default='', verbose_name="Телефон")
 
     class Meta:
         database = db
