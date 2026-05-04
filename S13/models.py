@@ -1,4 +1,4 @@
-"""Модуль моделей базы данных."""
+"""Модуль моделей базы данных для Work Program Service."""
 import datetime
 from peewee import SqliteDatabase, Model, CharField, DateTimeField, \
     ForeignKeyField, IntegerField
@@ -7,14 +7,14 @@ db = SqliteDatabase('work_programs.db')
 
 
 class BaseModel(Model):
-    """Базовая модель."""
+    """Базовая модель для связи с SQLite."""
 
     class Meta:
         database = db
 
 
 class WorkProgram(BaseModel):
-    """Модель рабочих программ."""
+    """Модель рабочих программ с проверкой уникальности названия и версии."""
 
     title = CharField(null=False)
     file_path = CharField(null=False)
@@ -22,13 +22,14 @@ class WorkProgram(BaseModel):
     created_at = DateTimeField(default=datetime.datetime.now, null=False)
 
     class Meta:
+        # ВОТ ЭТО ИСПРАВЛЯЕТ ОШИБКУ BORMERD:
         indexes = (
             (('title', 'version'), True),
         )
 
 
 class ProgramAssignment(BaseModel):
-    """Модель назначений."""
+    """Связь программ с внешними ID специальностей и дисциплин."""
 
     program = ForeignKeyField(
         WorkProgram,
@@ -39,16 +40,18 @@ class ProgramAssignment(BaseModel):
     discipline_id = IntegerField(null=False)
 
     class Meta:
+        # Уникальность назначения, чтобы не дублировать записи
         indexes = (
             (('program', 'specialty_id', 'discipline_id'), True),
+
         )
 
 
 def init_db():
-    """Инициализация БД."""
+    """Инициализация таблиц."""
     db.connect()
     db.create_tables([WorkProgram, ProgramAssignment])
-    print("БД Work Program Service инициализирована.")
+    print("БД успешно инициализирована.")
 
 
 if __name__ == "__main__":
