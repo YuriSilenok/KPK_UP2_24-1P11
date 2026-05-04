@@ -38,26 +38,14 @@ class Timeslot(BaseModel):
     """
 
     id = AutoField()
-    schedule = ForeignKeyField(
-        Schedule, backref="timeslots", on_delete="CASCADE", null=False
-    )
-    order_number = IntegerField(null=False)
-    is_lesson = BooleanField(null=False)  # True = занятие, False = перемена
-    start_time = TimeField(null=False)
-    end_time = TimeField(null=False)
+    schedule = ForeignKeyField(Schedule, backref="timeslots", on_delete="CASCADE")
+    order_number = IntegerField()
+    is_lesson = BooleanField()  # True = занятие, False = перемена
+    start_time = TimeField()
+    end_time = TimeField()
 
     class Meta:
         indexes = ((("schedule", "order_number"), True),)
-
-
-def verify_group_exists(group_id: int) -> bool:
-    """Заглушка для Group Service"""
-    return 1 <= group_id
-
-
-def verify_subgroup_exists(subgroup_id: int) -> bool:
-    """Заглушка для Subgroup Service"""
-    return 0 <= subgroup_id
 
 
 def create_tables():
