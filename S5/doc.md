@@ -73,3 +73,7 @@
 | `phone` | str |
 
 ![ER-диаграмма](./erd.png)
+
+PK — Primary Key (первичный ключ)
+
+UK — Unique Key (уникальный ключ)
