@@ -9,7 +9,7 @@ on:
 
 jobs:
   assign-yuri-as-reviewer:
-    if: ${{ github.event.review.state == 'approved' || github.event.action == 'review_requested' }}
+    if: ${{ github.event.review.state == 'approved'}}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
