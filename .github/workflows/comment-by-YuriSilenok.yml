@@ -6,25 +6,23 @@ on:
 
 jobs:
   ask-yuri:
-    if: ${{ github.event.review.state == 'approved' }}
+    if: ${{ github.event.review.state == 'approved' && secrets.PAT_TOKEN != '' }}
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      issues: write  # <-- Добавить эту строку
-      contents: read
-    
     steps:
-      - name: Comment asking YuriSilenok to review
+      - name: Get PR author and post comment
         env:
-          PAT_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          PR_AUTHOR=$(curl -s -H "Authorization: Bearer $PAT_TOKEN" \
-            https://api.github.com/repos/$REPO/pulls/$PR_NUMBER | jq -r '.user.login')
-          
+          # Получаем автора PR через gh (который теперь использует PAT_TOKEN)
+          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
           APPROVER="${{ github.event.review.user.login }}"
-          BODY="👋 @YuriSilenok, PR #$PR_NUMBER от @$PR_AUTHOR получил аппров от @$APPROVER. Пожалуйста, проверь код."
+          
+          # Формируем и публикуем комментарий
+          gh pr comment "$PR_NUMBER" \
+            --repo "$REPO" \
+            --body "👋 @YuriSilenok, PR #$PR_NUMBER от @$PR_AUTHOR получил аппров от @$APPROVER. Пожалуйста, проверь код."
           
           curl -X POST \
             -H "Authorization: Bearer $PAT_TOKEN" \
