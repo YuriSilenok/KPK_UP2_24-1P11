@@ -1,45 +1,43 @@
 name: "Ask YuriSilenok to review approved PR"
 
 on:
+  pull_request_target:
+    types: [review_requested, ready_for_review]
+    
+  # Альтернатива: триггер на комментарий с одобрением
   pull_request_review:
     types: [submitted]
 
 jobs:
   ask-yuri:
-    if: ${{ github.event.review.state == 'approved' }}
+    if: ${{ github.event.review.state == 'approved' || github.event.action == 'review_requested' }}
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+    
     steps:
-      - name: Check if PAT_TOKEN exists
-        id: check_token
+      - name: Get PR info and comment
         env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          if [ -n "$PAT_TOKEN" ]; then
-            echo "token_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "token_exists=false" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Post comment asking YuriSilenok to review
-        if: steps.check_token.outputs.token_exists == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
           # Получаем автора PR
           PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
-          APPROVER="${{ github.event.review.user.login }}"
+          
+          # Определяем, кто вызвал событие
+          if [ -n "${{ github.event.review.user.login }}" ]; then
+            APPROVER="${{ github.event.review.user.login }}"
+            MESSAGE="получил аппров от @$APPROVER"
+          else
+            MESSAGE="требует твоего внимания"
+          fi
           
           # Публикуем комментарий
           gh pr comment "$PR_NUMBER" \
             --repo "$REPO" \
-            --body "👋 @YuriSilenok, PR #$PR_NUMBER от @$PR_AUTHOR получил аппров от @$APPROVER. Пожалуйста, проверь код."
+            --body "👋 @YuriSilenok, PR #$PR_NUMBER от @$PR_AUTHOR $MESSAGE. Пожалуйста, проверь код."
           
           echo "✅ Комментарий отправлен YuriSilenok"
-      
-      - name: Skip comment - PAT_TOKEN not configured
-        if: steps.check_token.outputs.token_exists == 'false'
-        run: |
-          echo "⚠️ PAT_TOKEN не настроен в secrets репозитория. Комментарий не отправлен."
-          echo "Добавьте секрет PAT_TOKEN с персональным токеном доступа."
