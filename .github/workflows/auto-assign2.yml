@@ -11,6 +11,9 @@ jobs:
   assign-yuri:
     if: ${{ github.event.review.state == 'approved' }}
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    
     steps:
       - name: Add YuriSilenok as reviewer after approval
         env:
