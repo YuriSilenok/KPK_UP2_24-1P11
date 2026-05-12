@@ -17,13 +17,13 @@ class BaseModel(Model):
     class Meta:
         database = db
 
+class SubgroupType(BaseModel):
+    class Meta:
+        table_name = 'subgroup_types'
 
 class Subgroup(BaseModel):
-    """
-    Модель подгруппы
-    """
     id = AutoField()
-    name = ForeignKeyField(verbose_name='ID типа подгруппы')
+    name = ForeignKeyField(SubgroupType, verbose_name='ID типа подгруппы')  # ← исправленная строка
     group_id = IntegerField(verbose_name='ID группы')
     
     class Meta:
