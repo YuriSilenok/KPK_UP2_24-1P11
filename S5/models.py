@@ -3,8 +3,9 @@ from peewee import SqliteDatabase, Model, CharField
 db = SqliteDatabase('departments.db')
 
 class Department(Model):
-    name = CharField(max_length=100, unique=True, null=False)
-    phone = CharField(max_length=20, unique=True, null=False, default='')
+
+    name = CharField(max_length=100, unique=True, null=False, verbose_name="Название отделения")
+    phone = CharField(max_length=20, unique=True, default='', verbose_name="Телефон")
 
     class Meta:
         database = db
