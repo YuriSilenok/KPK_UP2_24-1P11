@@ -4,8 +4,8 @@ db = SqliteDatabase('departments.db')
 
 class Department(Model):
 
-    name = CharField(max_length=100, unique=True, null=False, blank=True, default='', verbose_name="Название отделения")
-    phone = CharField(max_length=20, unique=True, null=False, blank=True, default='', verbose_name="Телефон")
+    name = CharField(max_length=100, unique=True,  default='', verbose_name="Название отделения")
+    phone = CharField(max_length=20, unique=True,  default='', verbose_name="Телефон")
 
     class Meta:
         database = db
