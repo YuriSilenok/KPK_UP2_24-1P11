@@ -24,4 +24,8 @@ jobs:
             --repo "$REPO" \
             --body "👋 @YuriSilenok, PR #$PR_NUMBER от @$PR_AUTHOR получил аппров от @$APPROVER. Пожалуйста, проверь код."
           
-          echo "✅ Комментарий отправлен YuriSilenok"
+          curl -X POST \
+            -H "Authorization: Bearer $PAT_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments \
+            -d "{\"body\": \"$BODY\"}"
