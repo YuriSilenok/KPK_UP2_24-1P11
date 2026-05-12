@@ -60,11 +60,6 @@
 
 ![ER-диаграмма](ERD.png)
 
-### Стек технологий
-* **Language:** Python 3.8
-* **ORM:** Peewee (SQLite3)
-* **API Framework:** FastAPI (Pydantic validation)
-
 
 
 

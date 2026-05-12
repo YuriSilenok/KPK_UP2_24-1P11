@@ -22,7 +22,7 @@ class WorkProgram(BaseModel):
     created_at = DateTimeField(default=datetime.datetime.now, null=False)
 
     class Meta:
-        # ВОТ ЭТО ИСПРАВЛЯЕТ ОШИБКУ BORMERD:
+        # Индексы обеспечивают уникальность пары Название + Версия
         indexes = (
             (('title', 'version'), True),
         )
@@ -40,15 +40,14 @@ class ProgramAssignment(BaseModel):
     discipline_id = IntegerField(null=False)
 
     class Meta:
-        # Уникальность назначения, чтобы не дублировать записи
+        # Уникальность назначения, чтобы не дублировать одни и те же привязки
         indexes = (
             (('program', 'specialty_id', 'discipline_id'), True),
-
         )
 
 
 def init_db():
-    """Инициализация таблиц."""
+    """Инициализация таблиц базы данных."""
     db.connect()
     db.create_tables([WorkProgram, ProgramAssignment])
     print("БД успешно инициализирована.")
