@@ -16,7 +16,6 @@ class BaseModel(Model):
 class WorkProgram(BaseModel):
     """Модель рабочих программ с проверкой уникальности названия и версии."""
 
-    # unique=True для file_path гарантирует, что один файл не привяжут к разным записям
     title = CharField(null=False)
     file_path = CharField(null=False, unique=True)
     version = CharField(null=False, default="1.0")
