@@ -18,8 +18,8 @@ class UserResponse(BaseModel):
 
 class UserLogin(BaseModel):
     """Схема для входа пользователя"""
-    username: str
-    password: str
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=8)
 
 
 class TokenResponse(BaseModel):
@@ -30,7 +30,7 @@ class TokenResponse(BaseModel):
 
 class TokenRefresh(BaseModel):
     """Схема для обновления access токена"""
-    refresh_token: str
+    refresh_token: str = Field(...)
 
 
 class AccessTokenResponse(BaseModel):
@@ -40,12 +40,12 @@ class AccessTokenResponse(BaseModel):
 
 class PasswordResetRequest(BaseModel):
     """Схема запроса на сброс пароля"""
-    email: EmailStr
+    email: EmailStr = Field(...)
 
 
 class PasswordResetConfirm(BaseModel):
     """Схема подтверждения сброса пароля"""
-    reset_token: str
+    reset_token: str = Field(...)
     new_password: str = Field(..., min_length=8)
 
 
