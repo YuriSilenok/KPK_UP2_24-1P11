@@ -35,21 +35,21 @@ class Group(BaseModel):
     
     # Ограничение по году (>= 2000) 
     formation_year = IntegerField(
-        null=False, 
+        null=False,
         constraints=[Check('formation_year >= 2000')]
     )
     
     # Ограничение по базе (9 или 11 класс)
     education_base = IntegerField(
-        null=False, 
+        null=False,
         constraints=[Check('education_base IN (9, 11)')]
     )
     
     # Связь со статусом, значение по умолчанию 1
     status = ForeignKeyField(
-        GroupStatus, 
-        backref='groups', 
-        null=False, 
+        GroupStatus,
+        backref='groups',
+        null=True,
         default=1
     )
     
@@ -64,7 +64,7 @@ def create_tables():
     """Создаёт таблицы и заполняет справочник статусов"""
     with DB:
         DB.create_tables([GroupStatus, Group])
-        
+      
         # Автоматическое наполнение справочника при первом запуске
         if GroupStatus.select().count() == 0:
             GroupStatus.create(title="Активна")
