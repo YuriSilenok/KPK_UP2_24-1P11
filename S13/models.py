@@ -16,13 +16,13 @@ class BaseModel(Model):
 class WorkProgram(BaseModel):
     """Модель рабочих программ с проверкой уникальности названия и версии."""
 
+    # unique=True для file_path гарантирует, что один файл не привяжут к разным записям
     title = CharField(null=False)
-    file_path = CharField(null=False)
+    file_path = CharField(null=False, unique=True)
     version = CharField(null=False, default="1.0")
     created_at = DateTimeField(default=datetime.datetime.now, null=False)
 
     class Meta:
-        # Индексы обеспечивают уникальность пары Название + Версия
         indexes = (
             (('title', 'version'), True),
         )
@@ -40,7 +40,6 @@ class ProgramAssignment(BaseModel):
     discipline_id = IntegerField(null=False)
 
     class Meta:
-        # Уникальность назначения, чтобы не дублировать одни и те же привязки
         indexes = (
             (('program', 'specialty_id', 'discipline_id'), True),
         )
