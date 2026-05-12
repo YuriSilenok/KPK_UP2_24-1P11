@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write  # <-- Добавить эту строку
       contents: read
     
     steps:
@@ -19,11 +20,9 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          # Получаем автора PR и апрувера
           PR_AUTHOR=$(gh pr view $PR_NUMBER --json author --jq '.author.login' --repo $REPO)
           APPROVER="${{ github.event.review.user.login }}"
           
-          # Пишем комментарий
           gh pr comment $PR_NUMBER \
             --repo $REPO \
             --body "👋 @YuriSilenok, PR #$PR_NUMBER от @$PR_AUTHOR получил аппров от @$APPROVER. Пожалуйста, проверь код."
