@@ -4,22 +4,32 @@ on:
   pull_request_review:
     types: [submitted]
 
-permissions:
-  pull-requests: write
-
 jobs:
   assign-yuri:
     if: ${{ github.event.review.state == 'approved' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      contents: read
     
     steps:
-      - name: Add YuriSilenok as reviewer after approval
+      - name: Add YuriSilenok as reviewer
         env:
-          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          gh pr edit $PR_NUMBER --add-reviewer "YuriSilenok" --repo $REPO
-          echo "✅ YuriSilenok назначен ревьюером после одобрения PR"
+          # Проверяем, есть ли уже YuriSilenok в ревьюерах
+          current_reviewers=$(gh pr view $PR_NUMBER --json reviewers --jq '.reviewers[].login' --repo $REPO | grep -c "YuriSilenok" || true)
+          
+          if [ "$current_reviewers" -eq 0 ]; then
+            # Пытаемся добавить через API
+            curl -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/requested_reviewers \
+              -d '{"reviewers":["YuriSilenok"]}'
+            echo "✅ YuriSilenok назначен ревьюером"
+          else
+            echo "ℹ️ YuriSilenok уже ревьюер"
+          fi
