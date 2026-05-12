@@ -106,15 +106,3 @@
 
 ### ER-диаграмма
 ![Диаграмма](erd.png)
-
-### REST API Точки входа (Endpoints)
-
-| Метод | Точка входа (URI) | Назначение | Входные параметры (JSON Body) |
-|-------|-------------------|------------|-------------------------------|
-| `POST` | `/api/auth/register` | Регистрация нового пользователя | `username` (str), `email` (str), `password` (str) |
-| `POST` | `/api/auth/login` | Аутентификация пользователя и выдача пары токенов (access, refresh) | `username` (str), `password` (str) |
-| `POST` | `/api/auth/refresh` | Обновление access-токена по действующему refresh-токену | `refresh_token` (str) |
-| `POST` | `/api/auth/reset-password/request` | Создание запроса на сброс пароля (генерация reset-токена) | `email` (str) |
-| `POST` | `/api/auth/reset-password/confirm` | Подтверждение сброса и установка нового пароля | `reset_token` (str), `new_password` (str) |
-
-**Валидация данных** осуществляется на уровне REST API с помощью схем Pydantic. Все ошибочные запросы (например, пароль менее 8 символов или неверный формат email) автоматически возвращают HTTP статус `422 Unprocessable Entity` с описанием ошибки. Логические ошибки (пользователь уже существует) возвращают `400 Bad Request`.
