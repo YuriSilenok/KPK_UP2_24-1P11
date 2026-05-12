@@ -24,9 +24,9 @@ class Schedule(BaseModel):
     """
 
     id = AutoField()
-    group_id = IntegerField(null=False)  # заглушка Group Service
-    subgroup_id = IntegerField(null=False)  # 0 = основная группа, >0 подгруппа
-    day_of_week = IntegerField(null=False)
+    group_id = IntegerField()  # заглушка Group Service
+    subgroup_id = IntegerField()  # 0 = основная группа, >0 подгруппа
+    day_of_week = IntegerField()
 
     class Meta:
         indexes = ((("group_id", "subgroup_id", "day_of_week"), True),)
