@@ -1,1 +1,6 @@
 peewee
+fastapi
+uvicorn
+pydantic[email]
+passlib[bcrypt]
+PyJWT
