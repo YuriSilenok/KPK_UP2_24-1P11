@@ -1,34 +1,96 @@
 from peewee import *
 
-db = SqliteDatabase('room_service_s7.db')
+
+db = SqliteDatabase('room_service_s17.db')
+
 
 class BaseModel(Model):
+    """
+    Базовая модель для всех таблиц.
+    """
+
     class Meta:
         database = db
 
+
 class RoomType(BaseModel):
-    """Тип помещения: Кабинет, Лаборатория, Мастерская"""
-    title = CharField(unique=True, null=False)
+    """
+    Тип аудитории.
+
+    Примеры:
+    - Кабинет
+    - Лаборатория
+    - Мастерская
+    """
+
+    title = CharField(
+        unique=True,
+        null=False
+    )
+
 
 class Room(BaseModel):
-    """Сущность Аудитория"""
-    number = CharField(null=False)  # Номер кабинета
-    floor = IntegerField(null=False) # Этаж
-    building = CharField(null=False) # Корпус
-    capacity = IntegerField(null=False) # Вместимость
-    # Связь с типом помещения (3НФ)
-    room_type = ForeignKeyField(RoomType, backref='rooms', null=False)
+    """
+    Аудитория.
+    """
+
+    number = CharField(
+        null=False
+    )
+
+    floor = IntegerField(
+        null=False,
+        constraints=[Check('floor >= 0')]
+    )
+
+    building = CharField(
+        null=False
+    )
+
+    capacity = IntegerField(
+        null=False,
+        constraints=[Check('capacity > 0')]
+    )
+
+    room_type = ForeignKeyField(
+        RoomType,
+        backref='rooms',
+        null=False,
+        on_delete='RESTRICT'
+    )
+
+    # Логическое удаление
+    is_deleted = BooleanField(
+        default=False
+    )
+
+    class Meta:
+        indexes = (
+            # Уникальный номер аудитории внутри корпуса
+            (("number", "building"), True),
+        )
+
+
+# Инициализация базы данных
 
 def init_db():
-    db.connect()
-    db.create_tables([RoomType, Room], safe=True)
-    
-    # Наполнение справочников
-    if RoomType.select().count() == 0:
-        RoomType.create(title="Кабинет")
-        RoomType.create(title="Лаборатория")
-        RoomType.create(title="Мастерская")
+    db.connect(reuse_if_open=True)
 
-if __name__ == "__main__":
+    db.create_tables([
+        RoomType,
+        Room
+    ], safe=True)
+
+    # Заполнение справочника типов аудиторий
+    if RoomType.select().count() == 0:
+        RoomType.create(title='Кабинет')
+        RoomType.create(title='Лаборатория')
+        RoomType.create(title='Мастерская')
+
+    db.close()
+
+
+# Точка входа
+if __name__ == '__main__':
     init_db()
-    print("Сервис аудиторий (S7): БД успешно инициализирована.")
+    print('Room Service (S17): база данных успешно создана.')
