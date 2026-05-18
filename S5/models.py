@@ -75,13 +75,8 @@ def update_department(dept_id: int, name: str = None, phone: str = None) -> Depa
     db.close()
     return updated
 
-def delete_department(dept_id: int) -> bool:
-    db.connect()
-    deleted = Department.delete().where(Department.id == dept_id).execute()
-    db.close()
-    return bool(deleted)
+# delete_department выебан нахуй, потому что не используется
 
 if __name__ == "__main__":
     init_db()
     print("База данных инициализирована")
-    # Тестовые данные убраны — ничего не создаётся
