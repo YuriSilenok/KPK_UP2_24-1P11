@@ -16,17 +16,27 @@ class HolidayType(BaseModel):
         table_name = 'holiday_type'
 
 class Holiday(BaseModel):
-    """Праздники и каникулы"""
+    """Праздники"""
     id = PrimaryKeyField()
     name = CharField(max_length=100, unique=True, null=False)
-    date = DateField(null=True)
-    start_date = DateField(null=True)
-    end_date = DateField(null=True)
+    date = DateField(null=False)  # ОСТАВЛЯЕМ ТОЛЬКО DATE (null=False!)
     type = ForeignKeyField(HolidayType, backref='holidays', null=False)
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
         table_name = 'holiday'
+
+class VacationPeriod(BaseModel):
+    """Каникулы (период)"""
+    id = PrimaryKeyField()
+    name = CharField(max_length=100, null=False)
+    start_date = DateField(null=False)
+    end_date = DateField(null=False)
+    type = ForeignKeyField(HolidayType, backref='vacations', null=False)
+    is_active = BooleanField(default=True, null=False)
+
+    class Meta:
+        table_name = 'vacation_period'
 
 class Faculty(BaseModel):
     """Отделения/факультеты"""
