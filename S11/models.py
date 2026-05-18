@@ -28,7 +28,6 @@ class Discipline(BaseModel):
     id = IntegerField(primary_key=True)
     name = CharField(max_length=255, unique=True, null=False)
     code = CharField(max_length=50, unique=True, null=False)
-
     class Meta:
         table_name = "discipline"
 
