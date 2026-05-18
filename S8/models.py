@@ -25,7 +25,7 @@ class Subgroup(BaseModel):
     Соответствует таблице 'subgroups' из doc.md
     """
     id = AutoField()
-    name = CharField(verbose_name='Название подгруппы')  # language, sport, other
+    name = CharField(verbose_name='Название подгруппы')  
     group_id = IntegerField(verbose_name='ID группы')    # Внешний ключ к группе
     
     class Meta:
