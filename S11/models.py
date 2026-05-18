@@ -32,17 +32,6 @@ class Discipline(BaseModel):
     class Meta:
         table_name = "discipline"
 
-
-class Speciality(BaseModel):
-    """Модель специальности."""
-    id = IntegerField(primary_key=True)
-    name = CharField(max_length=255, unique=True, null=False)
-    code = CharField(max_length=50, unique=True, null=False)
-
-    class Meta:
-        table_name = "speciality"
-
-
 class DisciplineSpecialty(BaseModel):
     """Связующая таблица для связи дисциплин и специальностей (many-to-many)."""
     discipline = ForeignKeyField(Discipline, backref='specialities', on_delete='CASCADE', null=False)
@@ -65,7 +54,7 @@ def initialize_database():
     db.connect()
     db.create_tables([Discipline, Speciality, DisciplineSpecialty])
     print(f"База данных инициализирована: {DB_PATH}")
-    print(f"Таблицы созданы: Discipline, Speciality, DisciplineSpecialty")
+    print(f"Таблицы созданы: Discipline, DisciplineSpecialty")
     db.close()
 
 
