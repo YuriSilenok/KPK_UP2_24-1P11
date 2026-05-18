@@ -1,12 +1,13 @@
 from peewee import *
 
 
+# Подключение SQLite базы данных
 db = SqliteDatabase('room_service_s17.db')
 
 
 class BaseModel(Model):
     """
-    Базовая модель для всех таблиц.
+    Базовая модель.
     """
 
     class Meta:
@@ -16,14 +17,10 @@ class BaseModel(Model):
 class RoomType(BaseModel):
     """
     Тип аудитории.
-
-    Примеры:
-    - Кабинет
-    - Лаборатория
-    - Мастерская
     """
 
     title = CharField(
+        max_length=100,
         unique=True,
         null=False
     )
@@ -35,6 +32,7 @@ class Room(BaseModel):
     """
 
     number = CharField(
+        max_length=20,
         null=False
     )
 
@@ -44,6 +42,7 @@ class Room(BaseModel):
     )
 
     building = CharField(
+        max_length=100,
         null=False
     )
 
@@ -55,8 +54,7 @@ class Room(BaseModel):
     room_type = ForeignKeyField(
         RoomType,
         backref='rooms',
-        null=False,
-        on_delete='RESTRICT'
+        null=False
     )
 
     # Логическое удаление
@@ -66,14 +64,15 @@ class Room(BaseModel):
 
     class Meta:
         indexes = (
-            # Уникальный номер аудитории внутри корпуса
-            (("number", "building"), True),
+            (('number', 'building'), True),
         )
 
 
-# Инициализация базы данных
-
 def init_db():
+    """
+    Инициализация базы данных.
+    """
+
     db.connect(reuse_if_open=True)
 
     db.create_tables([
@@ -81,16 +80,16 @@ def init_db():
         Room
     ], safe=True)
 
-    # Заполнение справочника типов аудиторий
+    # Начальное заполнение справочника типов аудиторий
+    # Используется для базовой инициализации сервиса
     if RoomType.select().count() == 0:
-        RoomType.create(title='Кабинет')
-        RoomType.create(title='Лаборатория')
-        RoomType.create(title='Мастерская')
+        RoomType.create(title='Classroom')
+        RoomType.create(title='Laboratory')
+        RoomType.create(title='Workshop')
 
     db.close()
 
 
-# Точка входа
 if __name__ == '__main__':
     init_db()
-    print('Room Service (S17): база данных успешно создана.')
+    print('Room Service (S17): database initialized successfully.')
