@@ -18,9 +18,9 @@ Room Service — микросервис аудиторий учебного за
 
 Примеры типов аудиторий:
 
-- classroom;
-- laboratory;
-- workshop.
+- Classroom
+- Laboratory
+- Workshop
 
 ---
 
@@ -30,15 +30,15 @@ Room Service — микросервис аудиторий учебного за
 
 | Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| number | Номер аудитории | Да | String | Не пустая строка | — |
+| number | Номер аудитории | Да | String | Не пустая строка, максимум 20 символов | — |
 | floor | Этаж | Да | Integer | >= 0 | — |
-| building | Корпус | Да | String | Не пустая строка | — |
+| campus_id | Идентификатор корпуса | Да | Integer | Существующий Campus ID | — |
 | capacity | Вместимость аудитории | Да | Integer | > 0 | — |
 | room_type_id | Идентификатор типа аудитории | Да | Integer | Существующий RoomType ID | — |
 
 ## Уникальные комбинации параметров
 
-- number + building
+- number + campus_id
 
 Номер аудитории должен быть уникальным внутри корпуса.
 
@@ -49,7 +49,7 @@ Room Service — микросервис аудиторий учебного за
 | id | Integer |
 | number | String |
 | floor | Integer |
-| building | String |
+| campus_id | Integer |
 | capacity | Integer |
 | room_type_id | Integer |
 | is_deleted | Boolean |
@@ -62,9 +62,9 @@ Room Service — микросервис аудиторий учебного за
 
 | Параметр | Пояснение | Обязательность | Тип | Ограничение |
 | :--- | :--- | :--- | :--- | :--- |
-| number | Номер аудитории | Нет | String | Не пустая строка |
+| number | Номер аудитории | Нет | String | Не пустая строка, максимум 20 символов |
 | floor | Этаж | Нет | Integer | >= 0 |
-| building | Корпус | Нет | String | Не пустая строка |
+| campus_id | Идентификатор корпуса | Нет | Integer | Существующий Campus ID |
 | capacity | Вместимость аудитории | Нет | Integer | > 0 |
 | room_type_id | Идентификатор типа аудитории | Нет | Integer | Существующий RoomType ID |
 
@@ -75,7 +75,7 @@ Room Service — микросервис аудиторий учебного за
 | id | Integer |
 | number | String |
 | floor | Integer |
-| building | String |
+| campus_id | Integer |
 | capacity | Integer |
 | room_type_id | Integer |
 | is_deleted | Boolean |
@@ -108,7 +108,7 @@ Room Service — микросервис аудиторий учебного за
 | id | Идентификатор аудитории | Integer |
 | number | Номер аудитории | String |
 | floor | Этаж | Integer |
-| building | Корпус | String |
+| campus_id | Идентификатор корпуса | Integer |
 | capacity | Вместимость аудитории | Integer |
 | room_type | Название типа аудитории | String |
 | is_deleted | Признак удаления | Boolean |
@@ -122,7 +122,7 @@ Room Service — микросервис аудиторий учебного за
 | Параметр | Пояснение | Тип |
 | :--- | :--- | :--- |
 | floor | Фильтр по этажу | Integer |
-| building | Фильтр по корпусу | String |
+| campus_id | Фильтр по корпусу | Integer |
 | room_type_id | Фильтр по типу аудитории | Integer |
 | limit | Ограничение количества записей | Integer |
 
@@ -133,7 +133,7 @@ Room Service — микросервис аудиторий учебного за
 | id | Integer |
 | number | String |
 | floor | Integer |
-| building | String |
+| campus_id | Integer |
 | capacity | Integer |
 
 ---
@@ -144,7 +144,7 @@ Room Service — микросервис аудиторий учебного за
 
 | Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| title | Название типа аудитории | Да | String | Уникальное значение, не пустая строка | — |
+| title | Название типа аудитории | Да | String | Уникальное значение, не пустая строка, максимум 100 символов | — |
 
 ## Уникальные комбинации параметров
 
@@ -185,6 +185,8 @@ Room Service — микросервис аудиторий учебного за
 | :--- | :--- |
 | id | Integer |
 | title | String |
+
+
 ---
 
 # ER-диаграмма

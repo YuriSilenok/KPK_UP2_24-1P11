@@ -41,9 +41,8 @@ class Room(BaseModel):
         constraints=[Check('floor >= 0')]
     )
 
-    building = CharField(
-        max_length=100,
-        null=False
+    campus_id = IntegerField(
+    null=False
     )
 
     capacity = IntegerField(
