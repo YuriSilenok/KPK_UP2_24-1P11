@@ -84,12 +84,4 @@ def delete_department(dept_id: int) -> bool:
 if __name__ == "__main__":
     init_db()
     print("База данных инициализирована")
-    # Пример использования:
-    try:
-        dept = create_department("Информационных технологий", "+7-123-456")
-        print(f"Создано: {dept.id} - {dept.name}")
-    except ValueError as e:
-        print(e)
-    # Получить список
-    depts = list_departments()
-    print(f"Всего отделений: {len(depts)}")
+    # Тестовые данные убраны — ничего не создаётся
