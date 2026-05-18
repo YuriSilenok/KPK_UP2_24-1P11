@@ -15,7 +15,7 @@ class Department(models.Model):
         validators=[
             RegexValidator(
                 regex=r'^$|^\+7\d{10}$',  # пустая строка ИЛИ правильный телефон
-                message="Телефон должен быть пустым или в формате +7XXXXXXXXXX"
+                message="Телефон должен быть в формате +7XXXXXXXXXX"
             )
         ],
         verbose_name="Телефон"
