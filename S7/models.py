@@ -39,8 +39,8 @@ class Group(BaseModel):
     # True — группа активна, False — выпустилась.
     is_active = BooleanField(default=True, null=False)
     
-    # Внешний ID куратора
-    curator_id = IntegerField(null=False)
+    # Внешний ID куратора 
+    curator_id = IntegerField(null=True)
 
     class Meta:
         table_name = 'groups'
