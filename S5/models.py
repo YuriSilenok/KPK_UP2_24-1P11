@@ -1,12 +1,26 @@
-from peewee import SqliteDatabase, Model, CharField
+from django.core.validators import MinLengthValidator, RegexValidator
+from django.db import models
 
-db = SqliteDatabase('departments.db')
-
-class Department(Model):
-
-    name = CharField(max_length=100, unique=True,  default='', verbose_name="Название отделения")
-    phone = CharField(max_length=20, unique=True,  default='', verbose_name="Телефон")
-
+class Department(models.Model):
+    name = models.CharField(
+        max_length=50, 
+        unique=True,           # ← название УНИКАЛЬНОЕ (двух "Химки" быть не может)
+        validators=[MinLengthValidator(3)],
+        verbose_name="Название отделения"
+    )
+    phone = models.CharField(
+        max_length=12,
+        blank=True,            # ← можно не заполнять
+        default='',            # ← пустая строка по умолчанию
+        validators=[
+            RegexValidator(
+                regex=r'^$|^\+7\d{10}$',  # пустая строка ИЛИ правильный телефон
+                message="Телефон должен быть пустым или в формате +7XXXXXXXXXX"
+            )
+        ],
+        verbose_name="Телефон"
+    )
+    # НЕТ unique=True у phone — значит, можно повторять!
     class Meta:
         database = db
         table_name = 'departments'
@@ -35,7 +49,7 @@ def get_department(dept_id: int) -> Department:
     finally:
         db.close()
 
-def list_departments(name: str = None, limit: int = 100):
+def list_departments(name: str = None, limit: int = 50):
     db.connect()
     query = Department.select()
     if name:
