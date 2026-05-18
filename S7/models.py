@@ -9,7 +9,7 @@ from peewee import (
     Check
 )
 
-# Подключение к базе данных 
+# Простое подключение к базе данных без лишних настроек
 DB = SqliteDatabase('group_service_s7.db')
 
 
@@ -36,15 +36,15 @@ class Group(BaseModel):
         constraints=[Check('education_base IN (9, 11)')]
     )
     
-    # True — группа активна, False — выпустилась.
+    # Автоматический статус при создании (по умолчанию True)
     is_active = BooleanField(default=True, null=False)
     
-    # Внешний ID куратора (разрешено значение NULL)
+    # Необязательный куратор (разрешено значение NULL)
     curator_id = IntegerField(null=True)
 
     class Meta:
         table_name = 'groups'
-        # НАСТРОЙКА СОСТАВНОЙ УНИКАЛЬНОСТИ: название + год формирования
+        # Составная уникальность: название + год формирования
         indexes = (
             (('name', 'formation_year'), True),
         )
