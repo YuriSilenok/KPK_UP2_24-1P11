@@ -9,7 +9,7 @@ from peewee import (
     Check
 )
 
-# Подключение к базе данных твоего сервиса
+# Подключение к базе данных 
 DB = SqliteDatabase('group_service_s7.db')
 
 
@@ -22,7 +22,7 @@ class BaseModel(Model):
 class Group(BaseModel):
     """Класс учебной группы колледжа"""
     id = AutoField()
-    name = CharField(unique=True, null=False)
+    name = CharField(null=False)
     
     # Ограничение по году (>= 2000) 
     formation_year = IntegerField(
@@ -39,11 +39,15 @@ class Group(BaseModel):
     # True — группа активна, False — выпустилась.
     is_active = BooleanField(default=True, null=False)
     
-    # Внешний ID куратора 
+    # Внешний ID куратора (разрешено значение NULL)
     curator_id = IntegerField(null=True)
 
     class Meta:
         table_name = 'groups'
+        # НАСТРОЙКА СОСТАВНОЙ УНИКАЛЬНОСТИ: название + год формирования
+        indexes = (
+            (('name', 'formation_year'), True),
+        )
 
 
 def create_tables():
