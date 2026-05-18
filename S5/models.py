@@ -3,7 +3,7 @@ from django.db import models
 
 class Department(models.Model):
     name = models.CharField(
-        max_length=50, 
+        max_length=255, 
         unique=True,           # ← название УНИКАЛЬНОЕ (двух "Химки" быть не может)
         validators=[MinLengthValidator(3)],
         verbose_name="Название отделения"
@@ -49,12 +49,12 @@ def get_department(dept_id: int) -> Department:
     finally:
         db.close()
 
-def list_departments(name: str = None, limit: int = 50):
+def list_departments(name: str = None):
     db.connect()
     query = Department.select()
     if name:
         query = query.where(Department.name.contains(name))
-    result = list(query.limit(limit))
+    result = list(query)
     db.close()
     return result
 
