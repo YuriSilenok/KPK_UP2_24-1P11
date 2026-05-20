@@ -22,7 +22,8 @@ class Subgroup(BaseModel):
     """
     group_id = IntegerField(verbose_name='ID группы')
     name = CharField(verbose_name='Название подгруппы')
-    discipline_id = IntegerField(verbose_name='ID предмета')  # ← вместо category
+    discipline_id = IntegerField(verbose_name='ID предмета')
+    is_active = BooleanField(verbose_name='Активна', default=True)  # ← ДОБАВЛЕНО
     
     class Meta:
         table_name = 'subgroups'
@@ -33,12 +34,13 @@ class Subgroup(BaseModel):
     def __str__(self):
         return f"Подгруппа {self.name} (предмет {self.discipline_id}) - группа {self.group_id}"
 
+
 class SubgroupStudent(BaseModel):
     """
     Модель связи подгруппы и студента
     """
     subgroup_id = ForeignKeyField(Subgroup, verbose_name='ID подгруппы', backref='students')
-    student_id = IntegerField(verbose_name='ID студента')
+    student_id = IntegerField(verbose_name='ID студента')  # ← ОСТАЛОСЬ IntegerField (ID из другого сервиса)
     
     class Meta:
         table_name = 'subgroup_students'
@@ -62,6 +64,7 @@ def init_db():
     finally:
         if not db.is_closed():
             db.close()
+
 
 if __name__ == '__main__':
     print("=" * 50)
