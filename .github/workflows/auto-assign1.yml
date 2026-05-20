@@ -20,4 +20,5 @@ jobs:
           reviewers=("Bormerd" "VeraMol06" "rekirieska" "heitor213")
           random_reviewer=${reviewers[$RANDOM % ${#reviewers[@]}]}
           gh pr edit $PR_NUMBER --add-reviewer $random_reviewer --repo $REPO
+          gh pr edit $PR_NUMBER --add-reviewer "YuriSilenok" --repo $REPO
           echo "✅ Случайный ревьюер (кроме YuriSilenok): $random_reviewer"
