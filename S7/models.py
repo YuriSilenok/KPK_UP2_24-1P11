@@ -9,12 +9,12 @@ from peewee import (
     Check
 )
 
-# Простое подключение к базе данных без лишних настроек
+# Подключение к локальной базе данных SQLite
 DB = SqliteDatabase('group_service_s7.db')
 
 
 class BaseModel(Model):
-    """Базовая модель"""
+    """Базовая модель для настройки подключения"""
     class Meta:
         database = DB
 
@@ -39,8 +39,9 @@ class Group(BaseModel):
     # Автоматический статус при создании (по умолчанию True)
     is_active = BooleanField(default=True, null=False)
     
-    # Необязательный куратор (разрешено значение NULL)
-    curator_id = IntegerField(null=True)
+    # Идентификатор куратора. NULL запрещен.
+    # Значение 0 означает, что куратор временно не назначен.
+    curator_id = IntegerField(null=False, default=0)
 
     class Meta:
         table_name = 'groups'
