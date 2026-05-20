@@ -61,3 +61,4 @@ if __name__ == "__main__":
     create_tables()
     print("S7 Group Service: БД успешно инициализирована.")
     
+    
