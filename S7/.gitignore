@@ -2,3 +2,4 @@
 __pycache__/
 *.pyc
 .venv/
+**/group_service_s7.db
