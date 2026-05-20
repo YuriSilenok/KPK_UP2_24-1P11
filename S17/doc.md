@@ -51,7 +51,7 @@ Room Service — микросервис аудиторий учебного за
 | campus_id | Integer |
 | capacity | Integer |
 | room_type_id | Integer |
-| is_deleted | Boolean |
+| is_active | Boolean |
 
 ---
 
@@ -77,7 +77,7 @@ Room Service — микросервис аудиторий учебного за
 | campus_id | Integer |
 | capacity | Integer |
 | room_type_id | Integer |
-| is_deleted | Boolean |
+| is_active | Boolean |
 
 ---
 
@@ -89,7 +89,7 @@ Room Service — микросервис аудиторий учебного за
 
 Используется поле:
 
-- is_deleted
+- is_active
 
 Удаленные аудитории не должны возвращаться в стандартных операциях получения списка и поиска.
 
@@ -113,7 +113,7 @@ Room Service — микросервис аудиторий учебного за
 | capacity | Вместимость аудитории | Integer |
 | room_type_id | Идентификатор типа аудитории | Integer |
 | room_type | Название типа аудитории | String |
-| is_deleted | Признак удаления | Boolean |
+| is_active | Признак удаления | Boolean |
 
 ---
 
@@ -142,7 +142,7 @@ Room Service — микросервис аудиторий учебного за
 | campus_id | Integer |
 | capacity | Integer |
 | room_type_id | Integer |
-| is_deleted | Boolean |
+| is_active | Boolean |
 
 ---
 

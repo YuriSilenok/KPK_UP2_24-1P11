@@ -57,7 +57,7 @@ class Room(BaseModel):
     )
 
     # Логическое удаление
-    is_deleted = BooleanField(
+    is_active = BooleanField(
         default=False
     )
 
