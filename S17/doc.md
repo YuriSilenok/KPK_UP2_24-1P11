@@ -142,6 +142,7 @@ Room Service — микросервис аудиторий учебного за
 | campus_id | Integer |
 | capacity | Integer |
 | room_type_id | Integer |
+| is_deleted | Boolean |
 
 ---
 
