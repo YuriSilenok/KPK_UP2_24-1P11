@@ -1,27 +1,27 @@
-from django.core.validators import MinLengthValidator, RegexValidator
 from django.db import models
+from django.core.validators import MinLengthValidator, RegexValidator
 
 class Department(models.Model):
     name = models.CharField(
-        max_length=255, 
-        unique=True,           # ← название УНИКАЛЬНОЕ (двух "Химки" быть не может)
+        max_length=255,
+        unique=True,
         validators=[MinLengthValidator(3)],
         verbose_name="Название отделения"
     )
     phone = models.CharField(
-    max_length=12,
-    validators=[
-        RegexValidator(
-            regex=r'^\+7\d{10}$',  # только телефон, никакой пустой строки
-            message="Телефон должен быть в формате +7XXXXXXXXXX (например: +71234567890),"
-        )
-    ],
-    verbose_name="Телефон"
-)
-    # НЕТ unique=True у phone — значит, можно повторять!
+        max_length=12,
+        validators=[
+            RegexValidator(
+                regex=r'^\+7\d{10}$',
+                message="Телефон должен быть в формате +7XXXXXXXXXX (например: +71234567890)"
+            )
+        ],
+        verbose_name="Телефон"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Активно")
+    
     class Meta:
-        database = db
-        table_name = 'departments'
+        db_table = 'departments'
 
 def init_db():
     db.connect()
