@@ -11,10 +11,11 @@ class BaseModel(Model):
 class AcademicPeriod(BaseModel):
     name = CharField(max_length=100)
     academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, необязательный
-    type = CharField(max_length=20)  # semester, module
+    period_type = CharField(max_length=20)  # semester, module
     start_date = DateField()
     end_date = DateField()
     parent_period_id = IntegerField(default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
+    is_active = BooleanField(default=True)
 
     class Meta:
         indexes = (
