@@ -1,24 +1,14 @@
 from peewee import *
 
-
-# Подключение SQLite базы данных
-db = SqliteDatabase('room_service_s17.db')
+db = SqliteDatabase('room_service.db')
 
 
 class BaseModel(Model):
-    """
-    Базовая модель.
-    """
-
     class Meta:
         database = db
 
 
 class RoomType(BaseModel):
-    """
-    Тип аудитории.
-    """
-
     title = CharField(
         max_length=100,
         unique=True,
@@ -27,10 +17,6 @@ class RoomType(BaseModel):
 
 
 class Room(BaseModel):
-    """
-    Аудитория.
-    """
-
     number = CharField(
         max_length=20,
         null=False
@@ -42,7 +28,7 @@ class Room(BaseModel):
     )
 
     campus_id = IntegerField(
-    null=False
+        null=False
     )
 
     capacity = IntegerField(
@@ -53,42 +39,39 @@ class Room(BaseModel):
     room_type = ForeignKeyField(
         RoomType,
         backref='rooms',
+        on_delete='CASCADE',
         null=False
     )
 
-    # Логическое удаление
     is_active = BooleanField(
-        default=False
+        default=True,
+        null=False
     )
 
     class Meta:
         indexes = (
-            (('number', 'building'), True),
+            (
+                ('number', 'campus_id'),
+                True
+            ),
         )
 
 
-def init_db():
-    """
-    Инициализация базы данных.
-    """
+def initialize_database():
+    db.connect()
+    db.create_tables([RoomType, Room])
 
-    db.connect(reuse_if_open=True)
+    default_room_types = [
+        'Classroom',
+        'Laboratory',
+        'Workshop'
+    ]
 
-    db.create_tables([
-        RoomType,
-        Room
-    ], safe=True)
-
-    # Начальное заполнение справочника типов аудиторий
-    # Используется для базовой инициализации сервиса
-    if RoomType.select().count() == 0:
-        RoomType.create(title='Classroom')
-        RoomType.create(title='Laboratory')
-        RoomType.create(title='Workshop')
+    for title in default_room_types:
+        RoomType.get_or_create(title=title)
 
     db.close()
 
 
 if __name__ == '__main__':
-    init_db()
-    print('Room Service (S17): database initialized successfully.')
+    initialize_database()
