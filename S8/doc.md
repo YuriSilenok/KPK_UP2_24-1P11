@@ -73,7 +73,7 @@
 | id | Целое |
 | is_active | Булевый |
 
-**Пример:** `{"deleted": true, "id": 1, "is_active": false}`
+**Пример:** `{"deleted": True, "id": 1, "is_active": False}`
 
 ---
 
@@ -152,7 +152,7 @@
 |----------|-----|
 | deleted | Булевый |
 
-**Пример:** `{"deleted": true}`
+**Пример:** `{"deleted": True}`
 
 ---
 
@@ -169,6 +169,7 @@
 | student_id | Целое |
 
 ---
+
 
 ### ER-диаграмма
 ![Диаграмма](erd.png)
