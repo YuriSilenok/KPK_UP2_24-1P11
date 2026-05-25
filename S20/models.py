@@ -11,7 +11,7 @@ class BaseModel(Model):
 class AcademicPeriod(BaseModel):
     name = CharField(max_length=100)
     academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, необязательный
-    period_type = CharField(max_length=20)  # semester, module
+    period_type = CharField(max_length=10)  # semester, module
     start_date = DateField()
     end_date = DateField()
     parent_period_id = IntegerField(default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
@@ -21,6 +21,14 @@ class AcademicPeriod(BaseModel):
         indexes = (
             (('name', 'academic_year'), True),  # уникальная комбинация
         )
+
+    def save(self, *args, **kwargs):
+        if self.period_type not in ('semester', 'module'): raise ValueError("period_type must be either 'semester' or 'module'")
+        if self.start_date < date(2000, 1, 1): raise ValueError("start_date must be >= 2000-01-01")
+        if self.end_date <= self.start_date: raise ValueError("end_date must be greater than start_date")
+        if self.period_type == 'semester' and self.parent_period_id != 0: raise ValueError("Semester must have parent_period_id = 0")
+        if self.period_type == 'module' and self.parent_period_id == 0: raise ValueError("Module must have parent_period_id pointing to a semester")
+        super().save(*args, **kwargs)
 
 def init_db():
     db.connect()
