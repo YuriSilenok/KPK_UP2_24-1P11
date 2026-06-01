@@ -1,8 +1,5 @@
-
-# Файл `models.py`
-
 from contextlib import asynccontextmanager
-from peewee import SqliteDatabase, Model, IntegerField, CharField, FloatField
+from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -10,148 +7,124 @@ from typing import Optional, List
 # ==================== БАЗА ДАННЫХ ====================
 db = SqliteDatabase('workload.db')
 
-class Workload(Model):
-    """Модель нагрузки преподавателя"""
+class CalculatedLoad(Model):
+    """Результат расчёта нагрузки преподавателя"""
     teacher_id = IntegerField(null=False, verbose_name="ID преподавателя")
-    discipline = CharField(max_length=200, null=False, verbose_name="Дисциплина")
-    hours_per_week = FloatField(null=False, verbose_name="Часов в неделю")
-    groups_count = IntegerField(null=False, verbose_name="Количество групп")
-    semester = IntegerField(null=False, verbose_name="Семестр (1 или 2)")
-    year = IntegerField(null=False, verbose_name="Учебный год")
-    total_hours = FloatField(null=False, verbose_name="Общая нагрузка за семестр")
-    notes = CharField(max_length=500, null=True, verbose_name="Примечания")
+    period_id = IntegerField(null=False, verbose_name="ID учебного периода")
+    total_hours = FloatField(null=False, verbose_name="Общая нагрузка за период")
+    is_active = BooleanField(default=True, verbose_name="Активна ли запись")
 
     class Meta:
         database = db
-        table_name = 'workloads'
-
-def calculate_total_hours(hours_per_week: float, groups_count: int) -> float:
-    """Расчет общей нагрузки за семестр (18 недель)"""
-    WEEKS_IN_SEMESTER = 18
-    return round(hours_per_week * groups_count * WEEKS_IN_SEMESTER, 2)
+        table_name = 'calculated_loads'
 
 def init_db():
     """Функция инициализации базы данных"""
     db.connect()
-    db.create_tables([Workload], safe=True)
+    db.create_tables([CalculatedLoad], safe=True)
     db.close()
 
 # ==================== СХЕМЫ PYDANTIC ====================
-class WorkloadCreate(BaseModel):
-    """Схема для создания нагрузки"""
+class CalculateLoadRequest(BaseModel):
+    """Запрос на расчёт нагрузки"""
     teacher_id: int = Field(..., gt=0, description="ID преподавателя")
-    discipline: str = Field(..., max_length=200, description="Название дисциплины")
-    hours_per_week: float = Field(..., ge=1, le=54, description="Часов в неделю (1-54)")
-    groups_count: int = Field(..., ge=1, le=10, description="Количество групп (1-10)")
-    semester: int = Field(..., ge=1, le=2, description="Семестр (1 или 2)")
-    year: int = Field(..., ge=2020, le=2030, description="Учебный год")
-    notes: Optional[str] = Field(None, max_length=500, description="Примечания")
+    period_id: int = Field(..., gt=0, description="ID учебного периода")
 
-class WorkloadUpdate(BaseModel):
-    """Схема для обновления нагрузки"""
-    hours_per_week: Optional[float] = Field(None, ge=1, le=54, description="Часов в неделю")
-    groups_count: Optional[int] = Field(None, ge=1, le=10, description="Количество групп")
-    notes: Optional[str] = Field(None, max_length=500, description="Примечания")
-
-class WorkloadOut(BaseModel):
-    """Схема для ответа (вывода) нагрузки"""
+class CalculatedLoadOut(BaseModel):
+    """Схема для ответа"""
     id: int
     teacher_id: int
-    discipline: str
-    hours_per_week: float
-    groups_count: int
-    semester: int
-    year: int
+    period_id: int
     total_hours: float
-    notes: Optional[str]
+    is_active: bool
+
+class CalculatedLoadUpdate(BaseModel):
+    """Ручное обновление нагрузки"""
+    total_hours: Optional[float] = Field(None, ge=0, description="Общая нагрузка")
 
 # ==================== LIFESPAN ====================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения"""
-    print("🚀 Запуск сервера Workload Service...")
+    print("Запуск Load Calculation Service...")
     init_db()
-    print("✅ База данных инициализирована")
+    print("База данных инициализирована")
     yield
-    print("🛑 Остановка сервера...")
+    print("Остановка сервера...")
     if not db.is_closed():
         db.close()
-    print("✅ Ресурсы освобождены")
+    print("Ресурсы освобождены")
 
 # ==================== FASTAPI ПРИЛОЖЕНИЕ ====================
 app = FastAPI(
-    title="Workload Calculation Service",
-    description="Сервис расчета нагрузки преподавателя",
+    title="Load Calculation Service",
+    description="Сервис автоматического расчёта нагрузки преподавателя",
     version="1.0",
     lifespan=lifespan
 )
 
+# ==================== ФУНКЦИЯ РАСЧЁТА (ЗАГЛУШКА) ====================
+async def calculate_total_hours(teacher_id: int, period_id: int) -> float:
+    """
+    Автоматический расчёт нагрузки преподавателя за период.
+    В реальном микросервисе здесь были бы запросы к:
+    - Load Assignment Service (закрепления преподавателя)
+    - Curriculum Plan Service (часы по плану)
+    - Group Service (количество групп)
+    """
+    # Заглушка: возвращает тестовое значение
+    # При реальной интеграции заменить на httpx запросы к другим сервисам
+    return round(teacher_id * period_id * 18, 2)
+
 # ==================== ЭНДПОИНТЫ ====================
-@app.post("/workloads", response_model=WorkloadOut, status_code=201)
-def create_workload(workload: WorkloadCreate):
-    """Создание записи нагрузки"""
+@app.post("/calculate", response_model=CalculatedLoadOut, status_code=201)
+async def calculate_and_save(request: CalculateLoadRequest):
+    """Автоматический расчёт нагрузки и сохранение результата"""
     try:
+        total_hours = await calculate_total_hours(request.teacher_id, request.period_id)
+        
         db.connect()
         with db.atomic():
-            # Проверка уникальности
-            if Workload.select().where(
-                (Workload.teacher_id == workload.teacher_id) &
-                (Workload.discipline == workload.discipline) &
-                (Workload.semester == workload.semester) &
-                (Workload.year == workload.year)
-            ).exists():
-                raise HTTPException(400, "Такая нагрузка уже существует")
-            
-            total_hours = calculate_total_hours(workload.hours_per_week, workload.groups_count)
-            
-            new_workload = Workload.create(
-                teacher_id=workload.teacher_id,
-                discipline=workload.discipline,
-                hours_per_week=workload.hours_per_week,
-                groups_count=workload.groups_count,
-                semester=workload.semester,
-                year=workload.year,
-                total_hours=total_hours,
-                notes=workload.notes
+            existing = CalculatedLoad.get_or_none(
+                (CalculatedLoad.teacher_id == request.teacher_id) &
+                (CalculatedLoad.period_id == request.period_id) &
+                (CalculatedLoad.is_active == True)
             )
-        return new_workload
+            if existing:
+                raise HTTPException(400, "Расчёт для этого преподавателя и периода уже существует")
+            
+            new_load = CalculatedLoad.create(
+                teacher_id=request.teacher_id,
+                period_id=request.period_id,
+                total_hours=total_hours,
+                is_active=True
+            )
+        return new_load
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, f"Ошибка при создании: {str(e)}")
+        raise HTTPException(500, f"Ошибка при расчёте: {str(e)}")
     finally:
         db.close()
 
-@app.put("/workloads/{workload_id}", response_model=WorkloadOut)
-def update_workload(workload_id: int, workload: WorkloadUpdate):
-    """Обновление информации о нагрузке"""
+@app.put("/loads/{load_id}", response_model=CalculatedLoadOut)
+def update_load(load_id: int, update_data: CalculatedLoadUpdate):
+    """Ручное изменение нагрузки"""
     try:
         db.connect()
         with db.atomic():
-            existing = Workload.get_or_none(Workload.id == workload_id)
+            existing = CalculatedLoad.get_or_none(
+                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+            )
             if not existing:
-                raise HTTPException(404, "Нагрузка не найдена")
+                raise HTTPException(404, "Запись не найдена")
             
-            update_data = {}
-            new_hours = existing.hours_per_week
-            new_groups = existing.groups_count
+            if update_data.total_hours is not None:
+                CalculatedLoad.update(total_hours=update_data.total_hours).where(
+                    CalculatedLoad.id == load_id
+                ).execute()
             
-            if workload.hours_per_week is not None:
-                update_data['hours_per_week'] = workload.hours_per_week
-                new_hours = workload.hours_per_week
-            if workload.groups_count is not None:
-                update_data['groups_count'] = workload.groups_count
-                new_groups = workload.groups_count
-            if workload.notes is not None:
-                update_data['notes'] = workload.notes
-            
-            if workload.hours_per_week is not None or workload.groups_count is not None:
-                update_data['total_hours'] = calculate_total_hours(new_hours, new_groups)
-            
-            if update_data:
-                Workload.update(update_data).where(Workload.id == workload_id).execute()
-            
-            updated = Workload.get_by_id(workload_id)
+            updated = CalculatedLoad.get_by_id(load_id)
         return updated
     except HTTPException:
         raise
@@ -160,28 +133,36 @@ def update_workload(workload_id: int, workload: WorkloadUpdate):
     finally:
         db.close()
 
-@app.delete("/workloads/{workload_id}")
-def delete_workload(workload_id: int):
-    """Удаление нагрузки"""
+@app.delete("/loads/{load_id}")
+def delete_load(load_id: int):
+    """Мягкое удаление"""
     try:
         db.connect()
         with db.atomic():
-            deleted = Workload.delete().where(Workload.id == workload_id).execute()
-        return {"deleted": bool(deleted), "message": "Нагрузка удалена" if deleted else "Нагрузка не найдена"}
+            existing = CalculatedLoad.get_or_none(
+                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+            )
+            if not existing:
+                return False
+            
+            CalculatedLoad.update(is_active=False).where(CalculatedLoad.id == load_id).execute()
+            return True
     except Exception as e:
         raise HTTPException(500, f"Ошибка при удалении: {str(e)}")
     finally:
         db.close()
 
-@app.get("/workloads/{workload_id}", response_model=WorkloadOut)
-def get_workload(workload_id: int):
-    """Получение нагрузки по ID"""
+@app.get("/loads/{load_id}", response_model=CalculatedLoadOut)
+def get_load(load_id: int):
+    """Получение расчёта по ID"""
     try:
         db.connect()
-        workload = Workload.get_or_none(Workload.id == workload_id)
-        if not workload:
-            raise HTTPException(404, "Нагрузка не найдена")
-        return workload
+        load = CalculatedLoad.get_or_none(
+            (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+        )
+        if not load:
+            raise HTTPException(404, "Запись не найдена")
+        return load
     except HTTPException:
         raise
     except Exception as e:
@@ -189,40 +170,22 @@ def get_workload(workload_id: int):
     finally:
         db.close()
 
-@app.get("/workloads", response_model=List[WorkloadOut])
-def list_workloads(
+@app.get("/loads", response_model=List[CalculatedLoadOut])
+def list_loads(
     teacher_id: Optional[int] = None,
-    discipline: Optional[str] = None,
-    semester: Optional[int] = None,
-    year: Optional[int] = None,
-    min_hours: Optional[float] = None,
-    max_hours: Optional[float] = None,
-    min_total: Optional[float] = None,
-    max_total: Optional[float] = None,
+    period_id: Optional[int] = None,
     limit: int = 100,
     offset: int = 0
 ):
-    """Получение списка нагрузки с фильтрацией"""
+    """Список расчётов с фильтрацией"""
     try:
         db.connect()
-        query = Workload.select()
+        query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
         
         if teacher_id:
-            query = query.where(Workload.teacher_id == teacher_id)
-        if discipline:
-            query = query.where(Workload.discipline.contains(discipline))
-        if semester:
-            query = query.where(Workload.semester == semester)
-        if year:
-            query = query.where(Workload.year == year)
-        if min_hours is not None:
-            query = query.where(Workload.hours_per_week >= min_hours)
-        if max_hours is not None:
-            query = query.where(Workload.hours_per_week <= max_hours)
-        if min_total is not None:
-            query = query.where(Workload.total_hours >= min_total)
-        if max_total is not None:
-            query = query.where(Workload.total_hours <= max_total)
+            query = query.where(CalculatedLoad.teacher_id == teacher_id)
+        if period_id:
+            query = query.where(CalculatedLoad.period_id == period_id)
         
         return list(query.offset(offset).limit(limit))
     except Exception as e:
@@ -230,66 +193,37 @@ def list_workloads(
     finally:
         db.close()
 
-@app.get("/teachers/{teacher_id}/workload", response_model=List[WorkloadOut])
-def get_teacher_workload(teacher_id: int):
-    """Получение всей нагрузки преподавателя"""
+@app.get("/teachers/{teacher_id}/loads", response_model=List[CalculatedLoadOut])
+def get_teacher_loads(teacher_id: int):
+    """Вся нагрузка преподавателя по всем периодам"""
     try:
         db.connect()
-        workloads = list(Workload.select().where(Workload.teacher_id == teacher_id))
-        return workloads
+        loads = list(CalculatedLoad.select().where(
+            (CalculatedLoad.teacher_id == teacher_id) & (CalculatedLoad.is_active == True)
+        ))
+        return loads
     except Exception as e:
         raise HTTPException(500, f"Ошибка при получении: {str(e)}")
     finally:
         db.close()
 
-@app.get("/calculate/semester/{year}/{semester}")
-def calculate_semester_load(year: int, semester: int):
-    """Расчёт общей нагрузки за семестр"""
-    try:
-        db.connect()
-        workloads = Workload.select().where(
-            (Workload.year == year) & (Workload.semester == semester)
-        )
-        
-        total_load = sum(w.total_hours for w in workloads)
-        
-        return {
-            "year": year,
-            "semester": semester,
-            "total_hours": total_load,
-            "teachers_count": workloads.count(),
-            "details": list(workloads)
-        }
-    except Exception as e:
-        raise HTTPException(500, f"Ошибка при расчёте: {str(e)}")
-    finally:
-        db.close()
-
 @app.get("/")
 def root():
-    """Корневой эндпоинт"""
     return {
-        "service": "Workload Calculation Service",
+        "service": "Load Calculation Service",
         "version": "1.0",
-        "description": "Сервис расчета нагрузки преподавателя",
-        "formula": "total_hours = hours_per_week × groups_count × 18 недель",
+        "description": "Автоматический расчёт нагрузки преподавателя",
+        "formula": "total_hours = sum(plan_hours × groups_count)",
         "endpoints": {
-            "POST /workloads": "Создать нагрузку",
-            "GET /workloads": "Список нагрузки",
-            "GET /workloads/{id}": "Получить нагрузку по ID",
-            "PUT /workloads/{id}": "Обновить нагрузку",
-            "DELETE /workloads/{id}": "Удалить нагрузку",
-            "GET /teachers/{id}/workload": "Нагрузка преподавателя",
-            "GET /calculate/semester/{year}/{semester}": "Расчёт за семестр"
+            "POST /calculate": "Автоматический расчёт и сохранение",
+            "GET /loads": "Список расчётов",
+            "GET /loads/{id}": "Получить расчёт по ID",
+            "PUT /loads/{id}": "Ручное изменение",
+            "DELETE /loads/{id}": "Мягкое удаление",
+            "GET /teachers/{id}/loads": "Нагрузка преподавателя"
         }
     }
 
-# ==================== ТОЧКА ВХОДА ====================
 if __name__ == "__main__":
     import uvicorn
-    print("=" * 50)
-    print("Запуск сервера Workload Calculation Service...")
-    print("Документация API: http://localhost:8003/docs")
-    print("Формула расчета: total_hours = hours_per_week × groups_count × 18")
-    print("=" * 50)
     uvicorn.run(app, host="127.0.0.1", port=8003)
