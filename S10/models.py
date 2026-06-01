@@ -15,6 +15,10 @@ class BaseModel(Model):
         self.updated_at = datetime.now()
         return super().save(*args, **kwargs)
 
+    def deactivate(self):
+        self.is_active = False
+        self.save()
+
 class Position(BaseModel):
     title = CharField(max_length=255, unique=True)
     code = CharField(max_length=50, unique=True)
@@ -56,7 +60,6 @@ class EmployeePosition(BaseModel):
         if self.end_date and self.end_date < self.start_date:
             raise ValueError("End date must be after start date")
 
-        # Исправлено: Логика is_primary работает и при создании, и при обновлении
         if self.is_primary:
             current_primary = EmployeePosition.get_or_none(
                 (EmployeePosition.profile_id == self.profile_id) &
@@ -69,7 +72,6 @@ class EmployeePosition(BaseModel):
                 current_primary.is_primary = False
                 current_primary.save()
 
-        # Проверка изменения должности только если ID существует (обновление) и должность меняется
         if self.id:
             try:
                 old_instance = EmployeePosition.get_by_id(self.id)
@@ -108,11 +110,9 @@ class Leave(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("End date must be after start date")
 
-        # Исправлено: Добавлена проверка, что start_date не в будущем
         if self.start_date > date.today():
             raise ValueError("Start date cannot be in the future")
 
-        # Исправлено: Добавлена проверка активности ставки
         if not self.employee_position.is_active:
             raise ValueError("Cannot create leave for inactive position")
 
