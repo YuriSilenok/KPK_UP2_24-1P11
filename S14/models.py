@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField, Check
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 import httpx
 
@@ -22,7 +22,6 @@ class CalculatedLoad(Model):
         indexes = (
             (('teacher_id', 'period_id'), True),
         )
-        # Ограничения на уровне БД
         constraints = [
             Check('teacher_id > 0'),
             Check('period_id > 0'),
@@ -36,17 +35,24 @@ def init_db():
 
 # ==================== СХЕМЫ PYDANTIC ====================
 class CalculateLoadRequest(BaseModel):
-    teacher_id: int = Field(..., gt=0)
-    period_id: int = Field(..., gt=0)
+    teacher_id: int = Field(..., gt=0, description="ID преподавателя")
+    period_id: int = Field(..., gt=0, description="ID учебного периода")
+
+    @field_validator('teacher_id', 'period_id')
+    @classmethod
+    def validate_positive(cls, v: int, info) -> int:
+        if v <= 0:
+            raise ValueError(f'{info.field_name} должен быть больше 0')
+        return v
 
 class CalculatedLoadOut(BaseModel):
     id: int
     teacher_id: int
     period_id: int
-    total_hours: float
+    total_hours: float = Field(..., description="Общая нагрузка (округлено до 2 знаков)")
 
 class CalculatedLoadUpdate(BaseModel):
-    total_hours: Optional[float] = Field(None, ge=0)
+    total_hours: Optional[float] = Field(None, ge=0, description="Новое значение нагрузки")
 
 class DeleteResponse(BaseModel):
     result: bool
@@ -167,7 +173,6 @@ async def calculate_and_save(request: CalculateLoadRequest):
 @app.put("/loads/{load_id}", response_model=CalculatedLoadOut)
 def update_load(load_id: int, update_data: CalculatedLoadUpdate):
     try:
-        # Валидация total_hours через Pydantic уже выполнена
         db.connect()
         with db.atomic():
             existing = CalculatedLoad.get_or_none(
@@ -176,12 +181,14 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
             if not existing:
                 raise HTTPException(404, "Запись не найдена")
             
-            new_total_hours = existing.total_hours
+            # Если total_hours = None, оставляем старое значение (изменения нет)
             if update_data.total_hours is not None:
-                new_total_hours = update_data.total_hours
-                CalculatedLoad.update(total_hours=new_total_hours).where(
+                CalculatedLoad.update(total_hours=update_data.total_hours).where(
                     CalculatedLoad.id == load_id
                 ).execute()
+                new_total_hours = update_data.total_hours
+            else:
+                new_total_hours = existing.total_hours
             
             return CalculatedLoadOut(
                 id=load_id,
@@ -276,15 +283,21 @@ def list_loads(
         db.close()
 
 @app.get("/teachers/{teacher_id}/loads", response_model=List[CalculatedLoadOut])
-def get_teacher_loads(teacher_id: int):
+def get_teacher_loads(
+    teacher_id: int,
+    limit: int = 100,
+    offset: int = 0
+):
     try:
         if teacher_id <= 0:
             raise HTTPException(400, "teacher_id должен быть больше 0")
+        validate_limit(limit)
+        validate_offset(offset)
         
         db.connect()
         loads = list(CalculatedLoad.select().where(
             (CalculatedLoad.teacher_id == teacher_id) & (CalculatedLoad.is_active == True)
-        ))
+        ).offset(offset).limit(limit))
         
         return [
             CalculatedLoadOut(
