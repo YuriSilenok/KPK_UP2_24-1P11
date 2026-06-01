@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 import httpx
 
@@ -10,7 +10,7 @@ db = SqliteDatabase('workload.db')
 
 class CalculatedLoad(Model):
     """Результат расчёта нагрузки преподавателя"""
-    id = PrimaryKeyField()  # явно добавлен первичный ключ
+    id = PrimaryKeyField()
     teacher_id = IntegerField(null=False, verbose_name="ID преподавателя")
     period_id = IntegerField(null=False, verbose_name="ID учебного периода")
     total_hours = FloatField(null=False, verbose_name="Общая нагрузка за период")
@@ -19,6 +19,10 @@ class CalculatedLoad(Model):
     class Meta:
         database = db
         table_name = 'calculated_loads'
+        # Уникальность комбинации teacher_id + period_id
+        indexes = (
+            (('teacher_id', 'period_id'), True),
+        )
 
 def init_db():
     """Функция инициализации базы данных"""
@@ -42,69 +46,49 @@ class CalculatedLoadUpdate(BaseModel):
     total_hours: Optional[float] = Field(None, ge=0)
 
 # ==================== КОНФИГУРАЦИЯ ====================
-# Адреса других сервисов (заменить на реальные)
 LOAD_ASSIGNMENT_URL = "http://localhost:8006"
 CURRICULUM_PLAN_URL = "http://localhost:8004"
 GROUP_URL = "http://localhost:8005"
 
 # ==================== ФУНКЦИИ ЗАПРОСОВ К ДРУГИМ СЕРВИСАМ ====================
 async def get_teacher_assignments(teacher_id: int) -> List[dict]:
-    """Получить закрепления преподавателя из Load Assignment Service"""
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(f"{LOAD_ASSIGNMENT_URL}/assignments?teacher_id={teacher_id}", timeout=5.0)
             if response.status_code != 200:
-                raise HTTPException(502, f"Load Assignment Service вернул ошибку: {response.status_code}")
+                raise HTTPException(502, f"Load Assignment Service ошибка: {response.status_code}")
             return response.json()
-        except httpx.TimeoutException:
-            raise HTTPException(502, "Таймаут подключения к Load Assignment Service")
-        except httpx.ConnectError:
+        except (httpx.TimeoutException, httpx.ConnectError):
             raise HTTPException(502, "Не удалось подключиться к Load Assignment Service")
 
 async def get_curriculum_plan(plan_id: int) -> dict:
-    """Получить учебный план из Curriculum Plan Service"""
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(f"{CURRICULUM_PLAN_URL}/plans/{plan_id}", timeout=5.0)
             if response.status_code != 200:
-                raise HTTPException(502, f"Curriculum Plan Service вернул ошибку: {response.status_code}")
+                raise HTTPException(502, f"Curriculum Plan Service ошибка: {response.status_code}")
             return response.json()
-        except httpx.TimeoutException:
-            raise HTTPException(502, "Таймаут подключения к Curriculum Plan Service")
-        except httpx.ConnectError:
+        except (httpx.TimeoutException, httpx.ConnectError):
             raise HTTPException(502, "Не удалось подключиться к Curriculum Plan Service")
 
 async def get_groups_count(plan_id: int) -> int:
-    """Получить количество групп из Group Service"""
     async with httpx.AsyncClient() as client:
         try:
-            # Предполагается, что есть эндпоинт для получения групп по учебному плану
             response = await client.get(f"{GROUP_URL}/groups?plan_id={plan_id}", timeout=5.0)
             if response.status_code != 200:
-                raise HTTPException(502, f"Group Service вернул ошибку: {response.status_code}")
+                raise HTTPException(502, f"Group Service ошибка: {response.status_code}")
             return len(response.json())
-        except httpx.TimeoutException:
-            raise HTTPException(502, "Таймаут подключения к Group Service")
-        except httpx.ConnectError:
+        except (httpx.TimeoutException, httpx.ConnectError):
             raise HTTPException(502, "Не удалось подключиться к Group Service")
 
 async def calculate_total_hours(teacher_id: int, period_id: int) -> float:
-    """Автоматический расчёт нагрузки преподавателя за период с запросами к другим сервисам"""
-    # 1. Получаем все закрепления преподавателя
     assignments = await get_teacher_assignments(teacher_id)
-    
     total = 0.0
     for assignment in assignments:
-        # 2. Получаем учебный план
         plan = await get_curriculum_plan(assignment['curriculum_plan_id'])
-        
-        # 3. Получаем количество групп
         groups_count = await get_groups_count(plan['id'])
-        
-        # 4. Считаем нагрузку
         plan_hours = plan.get('total_hours', 0)
         total += plan_hours * groups_count
-    
     return round(total, 2)
 
 # ==================== LIFESPAN ====================
@@ -134,6 +118,7 @@ async def calculate_and_save(request: CalculateLoadRequest):
         
         db.connect()
         with db.atomic():
+            # Проверка уникальности (дублируется с индексом БД, но для понятности)
             existing = CalculatedLoad.get_or_none(
                 (CalculatedLoad.teacher_id == request.teacher_id) &
                 (CalculatedLoad.period_id == request.period_id) &
@@ -172,6 +157,7 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
                     CalculatedLoad.id == load_id
                 ).execute()
             
+            # Явно перезапрашиваем обновлённую запись
             updated = CalculatedLoad.get_by_id(load_id)
         return updated
     except HTTPException:
