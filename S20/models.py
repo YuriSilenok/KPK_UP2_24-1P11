@@ -11,7 +11,7 @@ class BaseModel(Model):
 
 class AcademicPeriod(BaseModel):
     name = CharField(max_length=100)
-    academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, необязательный
+    academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, обязательный
     period_type = CharField(max_length=10)  # semester, module
     start_date = DateField()
     end_date = DateField()
@@ -36,6 +36,14 @@ class AcademicPeriod(BaseModel):
             parent = AcademicPeriod.get_or_none(id=self.parent_period_id)
             if parent is None or parent.period_type != 'semester': raise ValueError("parent_period_id must reference an existing semester")
         super().save(*args, **kwargs)
+
+    def soft_delete(self):
+        self.is_active = False
+        self.save()
+
+    @classmethod
+    def name_contains(cls, term):
+        return cls.select().where(cls.name.contains(term))
 
 def init_db():
     db.connect()
