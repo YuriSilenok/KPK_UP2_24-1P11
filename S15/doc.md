@@ -1,10 +1,6 @@
 # 15. Load Assignment Service (Сервис распределения нагрузки):
-- # Название таблицы
-|---|---|---|
-|поле | тип | доп. параметры|
-|поле | тип | доп. параметры|
-
-- # LoadAssignment
+ # LoadAssignment
+| Поле | Тип | Ограничения |
 |---|---|---|
 |id | Integer | PK|
 |teacher_id | Integer | FK -> Teacher.id|
@@ -14,7 +10,8 @@
 |load_hours | Decimal(5,2) | >0 |
 
   
-- # Teacher
+ # Teacher
+| Поле | Тип | Ограничения |
 |---|---|---|
 |id | Integer | PK|
 |full_name | Varchar(200) | NOT NULL, UNIQUE|
@@ -22,6 +19,7 @@
 
 
 # Discipline
+| Поле | Тип | Ограничения |
 |---|---|---|
 |id | Integer | PK|
 |name | Varchar(200) | NOT NULL, UNIQUE|
@@ -29,12 +27,13 @@
 
 
 # Group
+| Поле | Тип | Ограничения |
 |---|---|---|
 |id | Integer | PK|
 |group_number | Varchar(20) | NOT NULL, UNIQUE|
 |specialty_id | Integer | NOT NULL|
 
-- # Students
+ # Students
 | Поле | Тип | Ограничения |
 |---|---|---|
 | id | Integer | PK |
