@@ -1,127 +1,102 @@
-# 15. Load Assignment Service (Сервис распределения нагрузки):
- # LoadAssignment
-| Поле | Тип | Ограничения |
-|---|---|---|
-|id | Integer | PK|
-|teacher_id | Integer | FK -> Teacher.id|
-|discipline_id | Integer | FK -> Discipline.id|
-|group_id | Integer | FK -> Group.id|
-|semester | Integer | 1-8|
-|load_hours | Decimal(5,2) | >0 |
+# 15. Load Assignment Service (Сервис распределения нагрузки)
 
-  
- # Teacher
-| Поле | Тип | Ограничения |
-|---|---|---|
-|id | Integer | PK|
-|full_name | Varchar(200) | NOT NULL, UNIQUE|
-|position | Varchar(100) | NOT NULL|
+## LoadAssignment
+| Поле | Тип | Обязательность | Уникальность | Пояснение |
+|------|-----|----------------|--------------|-----------|
+| id | Integer | Да | Да | Идентификатор |
+| teacher_id | Integer | Да | Нет | FK -> Teacher.id |
+| discipline_id | Integer | Да | Нет | FK -> Discipline.id |
+| group_id | Integer | Да | Нет | FK -> Group.id |
+| semester | Integer | Да | Нет | 1-8 |
+| load_hours | Decimal(5,2) | Да | Нет | >0 |
 
+## Teacher
+| Поле | Тип | Обязательность | Уникальность | Пояснение |
+|------|-----|----------------|--------------|-----------|
+| id | Integer | Да | Да | Идентификатор |
+| full_name | Varchar(200) | Да | Да | ФИО |
+| position | Varchar(100) | Да | Нет | Должность |
 
-# Discipline
-| Поле | Тип | Ограничения |
-|---|---|---|
-|id | Integer | PK|
-|name | Varchar(200) | NOT NULL, UNIQUE|
-|hours_total | Integer | NOT NULL |
+## Discipline
+| Поле | Тип | Обязательность | Уникальность | Пояснение |
+|------|-----|----------------|--------------|-----------|
+| id | Integer | Да | Да | Идентификатор |
+| name | Varchar(200) | Да | Да | Название |
+| hours_total | Integer | Да | Нет | Часы |
 
+## Group
+| Поле | Тип | Обязательность | Уникальность | Пояснение |
+|------|-----|----------------|--------------|-----------|
+| id | Integer | Да | Да | Идентификатор |
+| group_number | Varchar(20) | Да | Да | Номер |
+| specialty_id | Integer | Да | Нет | Специальность |
 
-# Group
-| Поле | Тип | Ограничения |
-|---|---|---|
-|id | Integer | PK|
-|group_number | Varchar(20) | NOT NULL, UNIQUE|
-|specialty_id | Integer | NOT NULL|
-
- # Student
-| Поле | Тип | Ограничения |
-|---|---|---|
-| id | Integer | PK |
-| student_number | Varchar | UNIQUE |
-| current_group_id | Integer | FK -> Group.id |
-| status | Varchar | NOT NULL |
+## Student
+| Поле | Тип | Обязательность | Уникальность | Пояснение |
+|------|-----|----------------|--------------|-----------|
+| id | Integer | Да | Да | Идентификатор |
+| student_number | Varchar | Нет | Да | Номер студента |
+| current_group_id | Integer | Нет | Нет | FK -> Group.id |
+| status | Varchar | Да | Нет | Статус |
 
 ## Добавить LoadAssignment
-| Параметр | Обязательность | Тип | Ограничение |
-|----------|----------------|-----|-------------|
-| teacher_id | Да | int | FK -> Teacher.id |
-| discipline_id | Да | int | FK -> Discipline.id |
-| group_id | Да | int | FK -> Group.id |
-| semester | Да | int | 1-8 |
-| load_hours | Да | decimal | >0 |
+| Параметр | Тип | Обязательность | Пояснение |
+|----------|-----|----------------|-----------|
+| teacher_id | int | Да | ID преподавателя |
+| discipline_id | int | Да | ID дисциплины |
+| group_id | int | Да | ID группы |
+| semester | int | Да | Номер семестра (1-8) |
+| load_hours | decimal | Да | Часы (>0) |
 
 **Уникальная комбинация:** (teacher_id, discipline_id, group_id, semester)
 
-**Возвращаемые данные:**
-| Поле | Тип |
-|------|-----|
-| id | int |
-| teacher_id | int |
-| discipline_id | int |
-| group_id | int |
-| semester | int |
-| load_hours | decimal |
+**Возвращает:** id созданной записи
+
+**При ошибке:** код ошибки и сообщение
 
 ## Изменить LoadAssignment по ID
-| Параметр | Обязательность | Тип | Ограничение |
-|----------|----------------|-----|-------------|
-| id | Да | int | PK |
-| teacher_id | Нет | int | FK -> Teacher.id |
-| discipline_id | Нет | int | FK -> Discipline.id |
-| group_id | Нет | int | FK -> Group.id |
-| semester | Нет | int | 1-8 |
-| load_hours | Нет | decimal | >0 |
+| Параметр | Тип | Обязательность | Пояснение |
+|----------|-----|----------------|-----------|
+| id | int | Да | ID записи |
+| teacher_id | int | Нет | ID преподавателя |
+| discipline_id | int | Нет | ID дисциплины |
+| group_id | int | Нет | ID группы |
+| semester | int | Нет | Номер семестра (1-8) |
+| load_hours | decimal | Нет | Часы (>0) |
 
-**Возвращаемые данные:**
-| Поле | Тип |
-|------|-----|
-| id | int |
-| teacher_id | int |
-| discipline_id | int |
-| group_id | int |
-| semester | int |
-| load_hours | decimal |
+**Возвращает:** обновлённую запись
+
+**При ошибке:** код ошибки и сообщение
 
 ## Удалить LoadAssignment по ID
-| Параметр | Обязательность | Тип | Ограничение |
-|----------|----------------|-----|-------------|
-| id | Да | int | PK |
+| Параметр | Тип | Обязательность | Пояснение |
+|----------|-----|----------------|-----------|
+| id | int | Да | ID записи |
 
-**Возвращаемые данные:**
-| Поле | Тип |
-|------|-----|
-| success | bool |
-| message | string |
+**Возвращает:** success (bool)
+
+**При ошибке:** код ошибки и сообщение
 
 ## Получить LoadAssignment по ID
-| Параметр | Обязательность | Тип | Ограничение |
-|----------|----------------|-----|-------------|
-| id | Да | int | PK |
+| Параметр | Тип | Обязательность | Пояснение |
+|----------|-----|----------------|-----------|
+| id | int | Да | ID записи |
 
-**Возвращаемые данные:**
-| Поле | Тип |
-|------|-----|
-| id | int |
-| teacher_id | int |
-| discipline_id | int |
-| group_id | int |
-| semester | int |
-| load_hours | decimal |
+**Возвращает:** запись LoadAssignment
 
-## Получить список LoadAssignment по заданным параметрам
-| Параметр | Обязательность | Тип | Ограничение |
-|----------|----------------|-----|-------------|
-| teacher_id | Нет | int | FK -> Teacher.id |
-| discipline_id | Нет | int | FK -> Discipline.id |
-| group_id | Нет | int | FK -> Group.id |
-| semester | Нет | int | 1-8 |
-| load_hours_min | Нет | decimal | >0 |
-| load_hours_max | Нет | decimal | >0 |
-| limit | Нет | int | >0 |
-| offset | Нет | int | >=0 |
+**При ошибке:** код ошибки и сообщение
 
-**Возвращаемые данные:** массив LoadAssignment
+## Получить список LoadAssignment
+| Параметр | Тип | Обязательность | Пояснение |
+|----------|-----|----------------|-----------|
+| teacher_id | int | Нет | Фильтр по преподавателю |
+| discipline_id | int | Нет | Фильтр по дисциплине |
+| group_id | int | Нет | Фильтр по группе |
+| semester | int | Нет | Фильтр по семестру |
+| limit | int | Нет | Лимит записей |
+| offset | int | Нет | Сдвиг |
+
+**Возвращает:** массив LoadAssignment
 
 ### ER-диаграмма
 ![ER-диаграмма](erd.png)
-```
