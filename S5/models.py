@@ -1,10 +1,12 @@
 import re
 from peewee import Model, SqliteDatabase, CharField, BooleanField, DoesNotExist
 
+# Подключение к базе данных
 db = SqliteDatabase('departments.db')
 
 
 class Department(Model):
+    """Модель отделения СПО"""
     name = CharField(max_length=255, unique=True)
     phone = CharField(max_length=12)
     is_active = BooleanField(default=True)
@@ -41,16 +43,18 @@ def create_department(name: str, phone: str) -> Department:
     if not Department.validate_name(name):
         raise ValueError("Название должно быть от 3 до 255 символов")
 
-    # Валидация телефона
+    # Валидация телефона (обязательное поле)
+    if not phone:
+        raise ValueError("Телефон обязателен для заполнения")
     if not Department.validate_phone(phone):
         raise ValueError("Телефон должен быть в формате +7XXXXXXXXXX (ровно 12 символов)")
 
-    # Проверка уникальности имени
-    if Department.select().where(Department.name == name).exists():
-        raise ValueError("Отделение с таким названием уже существует")
-
     db.connect()
     try:
+        # Проверка уникальности имени
+        if Department.select().where(Department.name == name).exists():
+            raise ValueError("Отделение с таким названием уже существует")
+
         department = Department.create(name=name, phone=phone, is_active=True)
         return department
     finally:
@@ -99,11 +103,13 @@ def update_department(dept_id: int, name: str = None, phone: str = None, is_acti
 
         # Обновление phone
         if phone is not None:
+            if not phone:
+                raise ValueError("Телефон не может быть пустым")
             if not Department.validate_phone(phone):
                 raise ValueError("Телефон должен быть в формате +7XXXXXXXXXX")
             department.phone = phone
 
-        # Обновление is_active
+        # Обновление is_active (для мягкого удаления)
         if is_active is not None:
             department.is_active = is_active
 
