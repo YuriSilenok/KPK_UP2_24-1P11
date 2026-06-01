@@ -14,19 +14,14 @@ class Role(BaseModel):
     description = TextField(max_length=200, null=True)
     is_active = BooleanField(default=True, null=False)
 
-class Permission(BaseModel):
-    name = CharField(max_length=100, unique=True, null=False)
-    resource = CharField(max_length=100, null=False)
-    action = CharField(max_length=50, null=False)
-
 class RolePermission(BaseModel):
     role = ForeignKeyField(Role, backref="permissions", null=False, on_delete="CASCADE")
-    permission = ForeignKeyField(Permission, backref="roles", null=False, on_delete="CASCADE")
+    permission = ForeignKeyField(backref="roles", null=False, on_delete="CASCADE")
     granted_at = DateTimeField(default=datetime.now, null=False)
 
 def init_db():
     db.connect()
-    db.create_tables([Role, Permission, RolePermission], safe=True)
+    db.create_tables([Role, RolePermission], safe=True)
     db.close()
 
 if __name__ == "__main__":
