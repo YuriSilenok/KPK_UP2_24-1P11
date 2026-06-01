@@ -1,14 +1,16 @@
 from contextlib import asynccontextmanager
-from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField
+from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
+import httpx
 
 # ==================== БАЗА ДАННЫХ ====================
 db = SqliteDatabase('workload.db')
 
 class CalculatedLoad(Model):
     """Результат расчёта нагрузки преподавателя"""
+    id = PrimaryKeyField()  # явно добавлен первичный ключ
     teacher_id = IntegerField(null=False, verbose_name="ID преподавателя")
     period_id = IntegerField(null=False, verbose_name="ID учебного периода")
     total_hours = FloatField(null=False, verbose_name="Общая нагрузка за период")
@@ -26,12 +28,10 @@ def init_db():
 
 # ==================== СХЕМЫ PYDANTIC ====================
 class CalculateLoadRequest(BaseModel):
-    """Запрос на расчёт нагрузки"""
-    teacher_id: int = Field(..., gt=0, description="ID преподавателя")
-    period_id: int = Field(..., gt=0, description="ID учебного периода")
+    teacher_id: int = Field(..., gt=0)
+    period_id: int = Field(..., gt=0)
 
 class CalculatedLoadOut(BaseModel):
-    """Схема для ответа"""
     id: int
     teacher_id: int
     period_id: int
@@ -39,13 +39,77 @@ class CalculatedLoadOut(BaseModel):
     is_active: bool
 
 class CalculatedLoadUpdate(BaseModel):
-    """Ручное обновление нагрузки"""
-    total_hours: Optional[float] = Field(None, ge=0, description="Общая нагрузка")
+    total_hours: Optional[float] = Field(None, ge=0)
+
+# ==================== КОНФИГУРАЦИЯ ====================
+# Адреса других сервисов (заменить на реальные)
+LOAD_ASSIGNMENT_URL = "http://localhost:8006"
+CURRICULUM_PLAN_URL = "http://localhost:8004"
+GROUP_URL = "http://localhost:8005"
+
+# ==================== ФУНКЦИИ ЗАПРОСОВ К ДРУГИМ СЕРВИСАМ ====================
+async def get_teacher_assignments(teacher_id: int) -> List[dict]:
+    """Получить закрепления преподавателя из Load Assignment Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{LOAD_ASSIGNMENT_URL}/assignments?teacher_id={teacher_id}", timeout=5.0)
+            if response.status_code != 200:
+                raise HTTPException(502, f"Load Assignment Service вернул ошибку: {response.status_code}")
+            return response.json()
+        except httpx.TimeoutException:
+            raise HTTPException(502, "Таймаут подключения к Load Assignment Service")
+        except httpx.ConnectError:
+            raise HTTPException(502, "Не удалось подключиться к Load Assignment Service")
+
+async def get_curriculum_plan(plan_id: int) -> dict:
+    """Получить учебный план из Curriculum Plan Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{CURRICULUM_PLAN_URL}/plans/{plan_id}", timeout=5.0)
+            if response.status_code != 200:
+                raise HTTPException(502, f"Curriculum Plan Service вернул ошибку: {response.status_code}")
+            return response.json()
+        except httpx.TimeoutException:
+            raise HTTPException(502, "Таймаут подключения к Curriculum Plan Service")
+        except httpx.ConnectError:
+            raise HTTPException(502, "Не удалось подключиться к Curriculum Plan Service")
+
+async def get_groups_count(plan_id: int) -> int:
+    """Получить количество групп из Group Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            # Предполагается, что есть эндпоинт для получения групп по учебному плану
+            response = await client.get(f"{GROUP_URL}/groups?plan_id={plan_id}", timeout=5.0)
+            if response.status_code != 200:
+                raise HTTPException(502, f"Group Service вернул ошибку: {response.status_code}")
+            return len(response.json())
+        except httpx.TimeoutException:
+            raise HTTPException(502, "Таймаут подключения к Group Service")
+        except httpx.ConnectError:
+            raise HTTPException(502, "Не удалось подключиться к Group Service")
+
+async def calculate_total_hours(teacher_id: int, period_id: int) -> float:
+    """Автоматический расчёт нагрузки преподавателя за период с запросами к другим сервисам"""
+    # 1. Получаем все закрепления преподавателя
+    assignments = await get_teacher_assignments(teacher_id)
+    
+    total = 0.0
+    for assignment in assignments:
+        # 2. Получаем учебный план
+        plan = await get_curriculum_plan(assignment['curriculum_plan_id'])
+        
+        # 3. Получаем количество групп
+        groups_count = await get_groups_count(plan['id'])
+        
+        # 4. Считаем нагрузку
+        plan_hours = plan.get('total_hours', 0)
+        total += plan_hours * groups_count
+    
+    return round(total, 2)
 
 # ==================== LIFESPAN ====================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Управление жизненным циклом приложения"""
     print("Запуск Load Calculation Service...")
     init_db()
     print("База данных инициализирована")
@@ -53,7 +117,6 @@ async def lifespan(app: FastAPI):
     print("Остановка сервера...")
     if not db.is_closed():
         db.close()
-    print("Ресурсы освобождены")
 
 # ==================== FASTAPI ПРИЛОЖЕНИЕ ====================
 app = FastAPI(
@@ -63,23 +126,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ==================== ФУНКЦИЯ РАСЧЁТА (ЗАГЛУШКА) ====================
-async def calculate_total_hours(teacher_id: int, period_id: int) -> float:
-    """
-    Автоматический расчёт нагрузки преподавателя за период.
-    В реальном микросервисе здесь были бы запросы к:
-    - Load Assignment Service (закрепления преподавателя)
-    - Curriculum Plan Service (часы по плану)
-    - Group Service (количество групп)
-    """
-    # Заглушка: возвращает тестовое значение
-    # При реальной интеграции заменить на httpx запросы к другим сервисам
-    return round(teacher_id * period_id * 18, 2)
-
 # ==================== ЭНДПОИНТЫ ====================
 @app.post("/calculate", response_model=CalculatedLoadOut, status_code=201)
 async def calculate_and_save(request: CalculateLoadRequest):
-    """Автоматический расчёт нагрузки и сохранение результата"""
     try:
         total_hours = await calculate_total_hours(request.teacher_id, request.period_id)
         
@@ -109,7 +158,6 @@ async def calculate_and_save(request: CalculateLoadRequest):
 
 @app.put("/loads/{load_id}", response_model=CalculatedLoadOut)
 def update_load(load_id: int, update_data: CalculatedLoadUpdate):
-    """Ручное изменение нагрузки"""
     try:
         db.connect()
         with db.atomic():
@@ -135,7 +183,6 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
 
 @app.delete("/loads/{load_id}")
 def delete_load(load_id: int):
-    """Мягкое удаление"""
     try:
         db.connect()
         with db.atomic():
@@ -154,7 +201,6 @@ def delete_load(load_id: int):
 
 @app.get("/loads/{load_id}", response_model=CalculatedLoadOut)
 def get_load(load_id: int):
-    """Получение расчёта по ID"""
     try:
         db.connect()
         load = CalculatedLoad.get_or_none(
@@ -177,7 +223,6 @@ def list_loads(
     limit: int = 100,
     offset: int = 0
 ):
-    """Список расчётов с фильтрацией"""
     try:
         db.connect()
         query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
@@ -195,7 +240,6 @@ def list_loads(
 
 @app.get("/teachers/{teacher_id}/loads", response_model=List[CalculatedLoadOut])
 def get_teacher_loads(teacher_id: int):
-    """Вся нагрузка преподавателя по всем периодам"""
     try:
         db.connect()
         loads = list(CalculatedLoad.select().where(
@@ -213,15 +257,6 @@ def root():
         "service": "Load Calculation Service",
         "version": "1.0",
         "description": "Автоматический расчёт нагрузки преподавателя",
-        "formula": "total_hours = sum(plan_hours × groups_count)",
-        "endpoints": {
-            "POST /calculate": "Автоматический расчёт и сохранение",
-            "GET /loads": "Список расчётов",
-            "GET /loads/{id}": "Получить расчёт по ID",
-            "PUT /loads/{id}": "Ручное изменение",
-            "DELETE /loads/{id}": "Мягкое удаление",
-            "GET /teachers/{id}/loads": "Нагрузка преподавателя"
-        }
     }
 
 if __name__ == "__main__":
