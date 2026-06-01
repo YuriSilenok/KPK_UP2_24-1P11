@@ -4,7 +4,7 @@ from peewee import *
 from datetime import date, datetime
 
 # Инициализация базы данных
-db = SqliteDatabase('employee_status.db')
+db = SqliteDatabase('employee_status.db', pragmas={'journal_mode': 'wal'}) # WAL режим для лучшей производительности
 
 class BaseModel(Model):
     class Meta:
@@ -21,11 +21,16 @@ class Position(BaseModel):
     
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now()
+        # Простая валидация на уровне Python
+        if not self.title or len(self.title.strip()) == 0:
+            raise ValueError("Title cannot be empty")
+        if self.base_rate <= 0:
+            raise ValueError("Base rate must be positive")
         return super().save(*args, **kwargs)
 
 class EmployeePosition(BaseModel):
     id = AutoField(primary_key=True)
-    profile_id = IntegerField()  # Внешний ключ к Profile Service
+    profile_id = IntegerField(index=True)  # Добавил индекс, так как часто ищут по profile_id
     position = ForeignKeyField(Position, backref='employees', on_delete='RESTRICT')
     rate = FloatField(constraints=[Check('rate BETWEEN 0.1 AND 2.0')], default=1.0)
     is_primary = BooleanField(default=False)
@@ -41,7 +46,7 @@ class EmployeePosition(BaseModel):
     
     class Meta:
         indexes = (
-            (('profile_id', 'is_primary'), True),
+            (('profile_id', 'is_primary'), True), # Уникальный составной индекс
             (('profile_id', 'position', 'start_date'), True),
         )
 
@@ -57,6 +62,8 @@ class Leave(BaseModel):
     
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now()
+        if self.end_date and self.start_date and self.end_date <= self.start_date:
+            raise ValueError("End date must be after start date")
         return super().save(*args, **kwargs)
 
 class SickLeave(BaseModel):
@@ -71,22 +78,31 @@ class SickLeave(BaseModel):
     
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now()
+        if self.end_date and self.start_date and self.end_date <= self.start_date:
+            raise ValueError("End date must be after start date")
         return super().save(*args, **kwargs)
 
 def init_db():
     """Функция инициализации базы данных"""
-    db.connect()
-    db.create_tables([Position, EmployeePosition, Leave, SickLeave], safe=True)
-    print("База данных инициализирована успешно!")
-    print("Созданы таблицы:")
-    print("- Position (Должности)")
-    print("- EmployeePosition (Ставки сотрудников)")
-    print("- Leave (Отпуска)")
-    print("- SickLeave (Больничные)")
-    return db
+    try:
+        db.connect()
+        db.create_tables([Position, EmployeePosition, Leave, SickLeave], safe=True)
+        print("База данных инициализирована успешно!")
+        print("Созданы таблицы:")
+        print("- Position (Должности)")
+        print("- EmployeePosition (Ставки сотрудников)")
+        print("- Leave (Отпуска)")
+        print("- SickLeave (Больничные)")
+    except Exception as e:
+        print(f"Ошибка при инициализации БД: {e}")
+    finally:
+        if not db.is_closed():
+            db.close() # Важно закрывать соединение
 
 def get_db():
     """Возвращает подключение к БД"""
+    if db.is_closed():
+        db.connect()
     return db
 
 if __name__ == "__main__":
