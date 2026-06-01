@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
-from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField
+from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField, Check
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import httpx
 
@@ -22,6 +22,12 @@ class CalculatedLoad(Model):
         indexes = (
             (('teacher_id', 'period_id'), True),
         )
+        # Ограничения на уровне БД
+        constraints = [
+            Check('teacher_id > 0'),
+            Check('period_id > 0'),
+            Check('total_hours >= 0')
+        ]
 
 def init_db():
     db.connect()
@@ -38,7 +44,6 @@ class CalculatedLoadOut(BaseModel):
     teacher_id: int
     period_id: int
     total_hours: float
-    is_active: bool
 
 class CalculatedLoadUpdate(BaseModel):
     total_hours: Optional[float] = Field(None, ge=0)
@@ -120,6 +125,10 @@ def validate_limit(limit: int):
     if limit < 1 or limit > 1000:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "limit должен быть в диапазоне 1-1000")
 
+def validate_offset(offset: int):
+    if offset < 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "offset должен быть >= 0")
+
 # ==================== ЭНДПОИНТЫ ====================
 @app.post("/calculate", response_model=CalculatedLoadOut, status_code=201)
 async def calculate_and_save(request: CalculateLoadRequest):
@@ -146,8 +155,7 @@ async def calculate_and_save(request: CalculateLoadRequest):
             id=new_load.id,
             teacher_id=new_load.teacher_id,
             period_id=new_load.period_id,
-            total_hours=new_load.total_hours,
-            is_active=new_load.is_active
+            total_hours=new_load.total_hours
         )
     except HTTPException:
         raise
@@ -159,6 +167,7 @@ async def calculate_and_save(request: CalculateLoadRequest):
 @app.put("/loads/{load_id}", response_model=CalculatedLoadOut)
 def update_load(load_id: int, update_data: CalculatedLoadUpdate):
     try:
+        # Валидация total_hours через Pydantic уже выполнена
         db.connect()
         with db.atomic():
             existing = CalculatedLoad.get_or_none(
@@ -174,13 +183,11 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
                     CalculatedLoad.id == load_id
                 ).execute()
             
-            # Явно возвращаем объект на основе обновлённых данных
             return CalculatedLoadOut(
                 id=load_id,
                 teacher_id=existing.teacher_id,
                 period_id=existing.period_id,
-                total_hours=new_total_hours,
-                is_active=True
+                total_hours=new_total_hours
             )
     except HTTPException:
         raise
@@ -189,7 +196,7 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
     finally:
         db.close()
 
-@app.delete("/loads/{load_id}", response_model=bool)
+@app.delete("/loads/{load_id}", response_model=DeleteResponse)
 def delete_load(load_id: int):
     try:
         db.connect()
@@ -198,10 +205,10 @@ def delete_load(load_id: int):
                 (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
             )
             if not existing:
-                return False
+                return DeleteResponse(result=False)
             
             CalculatedLoad.update(is_active=False).where(CalculatedLoad.id == load_id).execute()
-            return True
+            return DeleteResponse(result=True)
     except Exception as e:
         raise HTTPException(500, f"Ошибка при удалении: {str(e)}")
     finally:
@@ -220,8 +227,7 @@ def get_load(load_id: int):
             id=load.id,
             teacher_id=load.teacher_id,
             period_id=load.period_id,
-            total_hours=load.total_hours,
-            is_active=load.is_active
+            total_hours=load.total_hours
         )
     except HTTPException:
         raise
@@ -238,12 +244,10 @@ def list_loads(
     offset: int = 0
 ):
     try:
-        # Валидация параметров
         validate_positive(teacher_id, "teacher_id")
         validate_positive(period_id, "period_id")
         validate_limit(limit)
-        if offset < 0:
-            raise HTTPException(400, "offset должен быть >= 0")
+        validate_offset(offset)
         
         db.connect()
         query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
@@ -260,8 +264,7 @@ def list_loads(
                 id=load.id,
                 teacher_id=load.teacher_id,
                 period_id=load.period_id,
-                total_hours=load.total_hours,
-                is_active=load.is_active
+                total_hours=load.total_hours
             )
             for load in loads
         ]
@@ -288,8 +291,7 @@ def get_teacher_loads(teacher_id: int):
                 id=load.id,
                 teacher_id=load.teacher_id,
                 period_id=load.period_id,
-                total_hours=load.total_hours,
-                is_active=load.is_active
+                total_hours=load.total_hours
             )
             for load in loads
         ]
