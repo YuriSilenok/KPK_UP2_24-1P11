@@ -1,4 +1,5 @@
-from peewee import *
+from peewee import Model, SqliteDatabase, IntegerField, CharField, DecimalField, ForeignKeyField, IntegrityError, SQL
+from peewee import DoesNotExist
 import sqlite3
 
 db = SqliteDatabase('load_assignment.db')
