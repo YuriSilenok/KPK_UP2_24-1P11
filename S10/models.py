@@ -24,7 +24,6 @@ class Position(BaseModel):
         table_name = 'positions'
 
     def deactivate(self):
-        # Проверка: нельзя деактивировать должность, если есть активные ставки
         active_count = EmployeePosition.select().where(
             (EmployeePosition.position == self) & 
             (EmployeePosition.is_active == True)
@@ -48,20 +47,16 @@ class EmployeePosition(BaseModel):
         table_name = 'employee_positions'
 
     def save(self, *args, **kwargs):
-        # Валидация rate
         if not (0.1 <= self.rate <= 2.0):
             raise ValueError("Rate must be between 0.1 and 2.0")
 
-        # Валидация дат
         if self.start_date > date.today():
             raise ValueError("Start date cannot be in the future")
         
         if self.end_date and self.end_date < self.start_date:
             raise ValueError("End date must be after start date")
 
-        # Логика is_primary: обеспечение единственности основной ставки
         if self.is_primary:
-            # Находим текущую основную ставку этого сотрудника (исключая текущую запись при обновлении)
             current_primary = EmployeePosition.get_or_none(
                 (EmployeePosition.profile_id == self.profile_id) &
                 (EmployeePosition.is_primary == True) &
@@ -73,7 +68,6 @@ class EmployeePosition(BaseModel):
                 current_primary.is_primary = False
                 current_primary.save()
 
-        # Проверка изменения должности при наличии активных отпусков/больничных
         if self.id:
             try:
                 old_instance = EmployeePosition.get_by_id(self.id)
@@ -104,17 +98,14 @@ class Leave(BaseModel):
         table_name = 'leaves'
 
     def save(self, *args, **kwargs):
-        # Валидация Enum
         if self.leave_type not in ['annual', 'unpaid', 'study']:
             raise ValueError("Invalid leave type")
         if self.status not in ['pending', 'approved', 'rejected']:
             raise ValueError("Invalid status")
 
-        # Валидация дат
         if self.end_date < self.start_date:
             raise ValueError("End date must be after start date")
 
-        # Проверка активности ставки
         if not self.employee_position.is_active:
             raise ValueError("Cannot create leave for inactive position")
 
@@ -131,18 +122,15 @@ class SickLeave(BaseModel):
         table_name = 'sick_leaves'
 
     def save(self, *args, **kwargs):
-        # Валидация Enum
         if self.status not in ['active', 'closed']:
             raise ValueError("Invalid status")
 
-        # Валидация дат
         if self.end_date < self.start_date:
             raise ValueError("End date must be after start date")
         
         if self.start_date > date.today():
             raise ValueError("Start date cannot be in the future")
 
-        # Проверка активности ставки
         if not self.employee_position.is_active:
             raise ValueError("Cannot create sick leave for inactive position")
 
