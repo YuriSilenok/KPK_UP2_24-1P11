@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 import httpx
@@ -19,13 +19,11 @@ class CalculatedLoad(Model):
     class Meta:
         database = db
         table_name = 'calculated_loads'
-        # Уникальность комбинации teacher_id + period_id
         indexes = (
             (('teacher_id', 'period_id'), True),
         )
 
 def init_db():
-    """Функция инициализации базы данных"""
     db.connect()
     db.create_tables([CalculatedLoad], safe=True)
     db.close()
@@ -44,6 +42,9 @@ class CalculatedLoadOut(BaseModel):
 
 class CalculatedLoadUpdate(BaseModel):
     total_hours: Optional[float] = Field(None, ge=0)
+
+class DeleteResponse(BaseModel):
+    result: bool
 
 # ==================== КОНФИГУРАЦИЯ ====================
 LOAD_ASSIGNMENT_URL = "http://localhost:8006"
@@ -110,6 +111,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+def validate_positive(value: Optional[int], param_name: str):
+    if value is not None and value <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{param_name} должен быть больше 0")
+
+def validate_limit(limit: int):
+    if limit < 1 or limit > 1000:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "limit должен быть в диапазоне 1-1000")
+
 # ==================== ЭНДПОИНТЫ ====================
 @app.post("/calculate", response_model=CalculatedLoadOut, status_code=201)
 async def calculate_and_save(request: CalculateLoadRequest):
@@ -118,7 +128,6 @@ async def calculate_and_save(request: CalculateLoadRequest):
         
         db.connect()
         with db.atomic():
-            # Проверка уникальности (дублируется с индексом БД, но для понятности)
             existing = CalculatedLoad.get_or_none(
                 (CalculatedLoad.teacher_id == request.teacher_id) &
                 (CalculatedLoad.period_id == request.period_id) &
@@ -133,7 +142,13 @@ async def calculate_and_save(request: CalculateLoadRequest):
                 total_hours=total_hours,
                 is_active=True
             )
-        return new_load
+        return CalculatedLoadOut(
+            id=new_load.id,
+            teacher_id=new_load.teacher_id,
+            period_id=new_load.period_id,
+            total_hours=new_load.total_hours,
+            is_active=new_load.is_active
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -152,14 +167,21 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
             if not existing:
                 raise HTTPException(404, "Запись не найдена")
             
+            new_total_hours = existing.total_hours
             if update_data.total_hours is not None:
-                CalculatedLoad.update(total_hours=update_data.total_hours).where(
+                new_total_hours = update_data.total_hours
+                CalculatedLoad.update(total_hours=new_total_hours).where(
                     CalculatedLoad.id == load_id
                 ).execute()
             
-            # Явно перезапрашиваем обновлённую запись
-            updated = CalculatedLoad.get_by_id(load_id)
-        return updated
+            # Явно возвращаем объект на основе обновлённых данных
+            return CalculatedLoadOut(
+                id=load_id,
+                teacher_id=existing.teacher_id,
+                period_id=existing.period_id,
+                total_hours=new_total_hours,
+                is_active=True
+            )
     except HTTPException:
         raise
     except Exception as e:
@@ -167,7 +189,7 @@ def update_load(load_id: int, update_data: CalculatedLoadUpdate):
     finally:
         db.close()
 
-@app.delete("/loads/{load_id}")
+@app.delete("/loads/{load_id}", response_model=bool)
 def delete_load(load_id: int):
     try:
         db.connect()
@@ -194,7 +216,13 @@ def get_load(load_id: int):
         )
         if not load:
             raise HTTPException(404, "Запись не найдена")
-        return load
+        return CalculatedLoadOut(
+            id=load.id,
+            teacher_id=load.teacher_id,
+            period_id=load.period_id,
+            total_hours=load.total_hours,
+            is_active=load.is_active
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -210,15 +238,35 @@ def list_loads(
     offset: int = 0
 ):
     try:
+        # Валидация параметров
+        validate_positive(teacher_id, "teacher_id")
+        validate_positive(period_id, "period_id")
+        validate_limit(limit)
+        if offset < 0:
+            raise HTTPException(400, "offset должен быть >= 0")
+        
         db.connect()
         query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
         
-        if teacher_id:
+        if teacher_id is not None:
             query = query.where(CalculatedLoad.teacher_id == teacher_id)
-        if period_id:
+        if period_id is not None:
             query = query.where(CalculatedLoad.period_id == period_id)
         
-        return list(query.offset(offset).limit(limit))
+        loads = list(query.offset(offset).limit(limit))
+        
+        return [
+            CalculatedLoadOut(
+                id=load.id,
+                teacher_id=load.teacher_id,
+                period_id=load.period_id,
+                total_hours=load.total_hours,
+                is_active=load.is_active
+            )
+            for load in loads
+        ]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Ошибка при получении списка: {str(e)}")
     finally:
@@ -227,11 +275,26 @@ def list_loads(
 @app.get("/teachers/{teacher_id}/loads", response_model=List[CalculatedLoadOut])
 def get_teacher_loads(teacher_id: int):
     try:
+        if teacher_id <= 0:
+            raise HTTPException(400, "teacher_id должен быть больше 0")
+        
         db.connect()
         loads = list(CalculatedLoad.select().where(
             (CalculatedLoad.teacher_id == teacher_id) & (CalculatedLoad.is_active == True)
         ))
-        return loads
+        
+        return [
+            CalculatedLoadOut(
+                id=load.id,
+                teacher_id=load.teacher_id,
+                period_id=load.period_id,
+                total_hours=load.total_hours,
+                is_active=load.is_active
+            )
+            for load in loads
+        ]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Ошибка при получении: {str(e)}")
     finally:
