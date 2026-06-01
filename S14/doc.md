@@ -174,6 +174,5 @@
 - Swagger UI: `http://localhost:8003/docs`
 - ReDoc: `http://localhost:8003/redoc`
 ---
-
 ### ER-диаграмма
 ![Диаграмма](erd.png)
