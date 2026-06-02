@@ -16,6 +16,7 @@ class HolidayType(BaseModel):
         null=False,
         constraints=[Check("code IN ('holiday', 'vacation')")]
     )
+    is_active = BooleanField(default=True, null=False)
 
     class Meta:
         table_name = 'holiday_type'
