@@ -11,8 +11,8 @@ class HolidayType(BaseModel):
     id = PrimaryKeyField()
     name = CharField(max_length=50, unique=True, null=False)
     code = CharField(
-        max_length=8,
-        unique=True,
+        max_length=8, 
+        unique=True, 
         null=False,
         constraints=[Check("code IN ('holiday', 'vacation')")]
     )
