@@ -23,7 +23,6 @@ class CalculatedLoad(Model):
     class Meta:
         database = db
         table_name = 'calculated_load'
-        # Уникальная комбинация по обновлённому ТЗ из doc.md
         indexes = ((('teacher_id', 'period_id', 'discipline_id', 'group_id'), True),)
 
     def to_response(self):
@@ -79,6 +78,7 @@ def get_active_loads(teacher_id=None, period_id=None, discipline_id=None, group_
 
 
 def get_active_load_by_id(load_id):
+    # Замечание 3: Теперь выбрасываем ValueError для единообразия с другими функциями
     if load_id <= 0:
         raise ValueError("load_id должен быть > 0")
         
@@ -90,10 +90,10 @@ def get_active_load_by_id(load_id):
 
 
 def create_load(teacher_id, period_id, discipline_id, group_id, total_hours=None):
-    """
-    Добавить CalculatedLoad.
-    Если параметр total_hours не передан, ставится 0.0 по умолчанию.
-    """
+    # Замечание 1: Сначала обрабатываем значение по умолчанию, а затем проверяем ограничения
+    if total_hours is None:
+        total_hours = 0.0
+
     if teacher_id <= 0:
         raise ValueError("teacher_id должен быть > 0")
     if period_id <= 0:
@@ -102,32 +102,19 @@ def create_load(teacher_id, period_id, discipline_id, group_id, total_hours=None
         raise ValueError("discipline_id должен быть > 0")
     if group_id <= 0:
         raise ValueError("group_id должен быть > 0")
-    
-    if total_hours is None:
-        total_hours = 0.0
     if total_hours < 0:
         raise ValueError("total_hours должен быть >= 0")
     
     with db_transaction():
-        # Проверка уникальности комбинации четырёх параметров
+        # Замечание 2 и 6: Упростили ручную проверку. Если запись вообще есть в базе — бросаем ошибку
         existing = CalculatedLoad.get_or_none(
             (CalculatedLoad.teacher_id == teacher_id) & 
             (CalculatedLoad.period_id == period_id) &
             (CalculatedLoad.discipline_id == discipline_id) &
             (CalculatedLoad.group_id == group_id)
         )
-        
         if existing:
-            if existing.is_active:
-                raise UniqueConstraintError(
-                    f"Запись уже существует для teacher={teacher_id}, period={period_id}, discipline={discipline_id}, group={group_id}"
-                )
-            else:
-                # Реанимируем мягко удалённую запись, чтобы избежать конфликтов в СУБД
-                existing.total_hours = total_hours
-                existing.is_active = True
-                existing.save()
-                return existing.to_response()
+            raise UniqueConstraintError("Запись с такой комбинацией параметров уже существует")
         
         try:
             load = CalculatedLoad.create(
@@ -167,18 +154,22 @@ def delete_load(load_id):
     if load_id <= 0:
         raise ValueError("load_id должен быть > 0")
         
-    with db_transaction():
-        load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
-        if not load:
-            return False
-            
-        query = CalculatedLoad.update(is_active=False).where(
-            (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
-        )
-        rows_updated = query.execute()
-        return rows_updated > 0
+    # Замечание 4: Добавили явный перехват исключений базы данных
+    try:
+        with db_transaction():
+            load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+            if not load:
+                return False
+                
+            query = CalculatedLoad.update(is_active=False).where(
+                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+            )
+            rows_updated = query.execute()
+            return rows_updated > 0
+    except Exception:
+        return False
 
 
 if __name__ == '__main__':
     init_db()
-    print("Таблица calculated_load успешно создана со всеми новыми полями.")
+    print("Таблица calculated_load успешно создана.")
