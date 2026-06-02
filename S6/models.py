@@ -17,7 +17,6 @@ class Specialty(BaseModel):
 
     class Meta:
         table_name = 'specialty'
-        # ИСПРАВЛЕНО: Избыточные индексы убраны по рекомендации бота
 
 class FGOS(BaseModel):
     """Сущность: FGOS (ФГОС)"""
@@ -29,13 +28,16 @@ class FGOS(BaseModel):
 
 class SpecialtyFGOS(BaseModel):
     """Сущность: SPECIALTY_FGOS (Транзитивная таблица)"""
-    # ИСПРАВЛЕНО: null=False передан корректно для Peewee конструктора связей
-    specialty_id = ForeignKeyField(Specialty, column_name='specialty_id', backref='fgos_links', on_delete='CASCADE', null=False)
-    fgos_id = ForeignKeyField(FGOS, column_name='fgos_id', backref='specialty_links', on_delete='CASCADE', null=False)
+    # ИСПРАВЛЕНО: Переменные названы specialty и fgos. 
+    # Через column_name в самой БД колонки назовутся строго specialty_id и fgos_id по ER-диаграмме.
+    # Это полностью убирает риск скрытого дублирования полей в Peewee.
+    specialty = ForeignKeyField(Specialty, column_name='specialty_id', backref='fgos_links', on_delete='CASCADE', null=False)
+    fgos = ForeignKeyField(FGOS, column_name='fgos_id', backref='specialty_links', on_delete='CASCADE', null=False)
 
     class Meta:
+        table_name = 'specialty_f_g_o_s' if hasattr(BaseModel, '_meta') else 'specialty_fgos'
         table_name = 'specialty_fgos'
-        primary_key = CompositeKey('specialty_id', 'fgos_id')
+        primary_key = CompositeKey('specialty', 'fgos')
 
 def init_db():
     db.connect()
@@ -46,4 +48,4 @@ if __name__ == "__main__":
     if os.path.exists(db_path):
         os.remove(db_path)
     init_db()
-    print("УСПЕХ: База данных specialties.db успешно создана!")
+    print("УСПЕХ: База данных specialties.db успешно создана без конфликтов имен!")
