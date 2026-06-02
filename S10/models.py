@@ -5,6 +5,11 @@ from peewee import *
 logger = logging.getLogger(__name__)
 db = SqliteDatabase('app.db')
 
+# Константы для валидации перечислений
+LEAVE_TYPES = ("ANNUAL", "UNPAID", "STUDY")
+LEAVE_STATUSES = ("PLANNED", "ACTIVE", "COMPLETED", "CANCELLED")
+SICK_LEAVE_STATUSES = ("OPEN", "CLOSED", "EXTENDED")
+
 
 class BaseModel(Model):
     """Базовая модель с поддержкой мягкого удаления и временных меток."""
@@ -48,6 +53,8 @@ class Position(BaseModel):
             raise ValueError("Название должности не может превышать 255 символов.")
         if len(self.code) > 50:
             raise ValueError("Код должности не может превышать 50 символов.")
+        if len(self.department) > 100:
+            raise ValueError("Подразделение не может превышать 100 символов.")
             
         if self.code:
             existing = Position.select().where(
@@ -188,13 +195,10 @@ class Leave(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания не может быть раньше даты начала.")
 
-        valid_types = ["ANNUAL", "UNPAID", "STUDY"]
-        valid_statuses = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]
-
-        if self.leave_type not in valid_types:
-            raise ValueError(f"Недопустимый тип отпуска. Разрешены: {valid_types}")
-        if self.status not in valid_statuses:
-            raise ValueError(f"Недопустимый статус. Разрешены: {valid_statuses}")
+        if self.leave_type not in LEAVE_TYPES:
+            raise ValueError(f"Недопустимый тип отпуска. Разрешены: {LEAVE_TYPES}")
+        if self.status not in LEAVE_STATUSES:
+            raise ValueError(f"Недопустимый статус. Разрешены: {LEAVE_STATUSES}")
 
         if self._check_overlap():
             raise ValueError(
@@ -248,9 +252,8 @@ class SickLeave(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания не может быть раньше даты начала.")
 
-        valid_statuses = ["OPEN", "CLOSED", "EXTENDED"]
-        if self.status not in valid_statuses:
-            raise ValueError(f"Недопустимый статус. Разрешены: {valid_statuses}")
+        if self.status not in SICK_LEAVE_STATUSES:
+            raise ValueError(f"Недопустимый статус. Разрешены: {SICK_LEAVE_STATUSES}")
 
         if self.certificate_number:
             existing = SickLeave.select().where(
