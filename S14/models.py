@@ -1,6 +1,14 @@
 from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField, Check, IntegrityError
+from contextlib import contextmanager
 
 db = SqliteDatabase('workload.db')
+
+@contextmanager
+def db_transaction():
+    """Контекстный менеджер для транзакций"""
+    with db.atomic():
+        yield
+
 
 class CalculatedLoad(Model):
     id = PrimaryKeyField()
@@ -15,12 +23,18 @@ class CalculatedLoad(Model):
         indexes = ((('teacher_id', 'period_id'), True),)
 
     def to_response(self):
+        """Возвращает словарь только с полями, указанными в doc.md"""
         return {
             'id': self.id,
             'teacher_id': self.teacher_id,
             'period_id': self.period_id,
             'total_hours': self.total_hours
         }
+
+
+class UniqueConstraintError(Exception):
+    """Исключение для нарушения уникальности"""
+    pass
 
 
 def init_db():
@@ -30,27 +44,31 @@ def init_db():
 
 
 def get_active_loads(teacher_id=None, period_id=None, limit=100, offset=0):
+    # Валидация параметров до построения запроса
     if limit < 1 or limit > 1000:
         raise ValueError("limit должен быть в диапазоне 1-1000")
     if offset < 0:
         raise ValueError("offset должен быть >= 0")
+    if teacher_id is not None and teacher_id <= 0:
+        raise ValueError("teacher_id должен быть > 0")
+    if period_id is not None and period_id <= 0:
+        raise ValueError("period_id должен быть > 0")
     
     query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
     if teacher_id is not None:
-        if teacher_id <= 0:
-            raise ValueError("teacher_id должен быть > 0")
         query = query.where(CalculatedLoad.teacher_id == teacher_id)
     if period_id is not None:
-        if period_id <= 0:
-            raise ValueError("period_id должен быть > 0")
         query = query.where(CalculatedLoad.period_id == period_id)
     
     return [load.to_response() for load in query.offset(offset).limit(limit)]
 
 
 def get_active_load_by_id(load_id):
-    load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
-    return load.to_response() if load else None
+    try:
+        load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+        return load.to_response() if load else None
+    except Exception:
+        return None
 
 
 def create_load(teacher_id, period_id, total_hours=None):
@@ -65,38 +83,56 @@ def create_load(teacher_id, period_id, total_hours=None):
         raise ValueError("total_hours должен быть >= 0")
     
     try:
-        load = CalculatedLoad.create(
-            teacher_id=teacher_id,
-            period_id=period_id,
-            total_hours=total_hours,
-            is_active=True
-        )
-        return load.to_response()
+        with db_transaction():
+            load = CalculatedLoad.create(
+                teacher_id=teacher_id,
+                period_id=period_id,
+                total_hours=total_hours,
+                is_active=True
+            )
+            return load.to_response()
     except IntegrityError:
-        raise ValueError("Запись с таким teacher_id и period_id уже существует")
+        raise UniqueConstraintError("Запись с таким teacher_id и period_id уже существует")
 
 
 def update_load(load_id, total_hours=None):
-    existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
-    if existing is None:
+    # Если total_hours не передан, обновление не требуется
+    if total_hours is None:
+        # Возвращаем текущую запись без изменений
+        existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+        return existing.to_response() if existing else None
+    
+    if total_hours < 0:
+        raise ValueError("total_hours должен быть >= 0")
+    
+    try:
+        with db_transaction():
+            # Используем update() с явным фильтром для предотвращения race conditions
+            query = CalculatedLoad.update(total_hours=total_hours).where(
+                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+            )
+            rows_updated = query.execute()
+            
+            if rows_updated == 0:
+                return None
+            
+            # Возвращаем обновленную запись
+            updated = CalculatedLoad.get_by_id(load_id)
+            return updated.to_response()
+    except Exception:
         return None
-    
-    if total_hours is not None:
-        if total_hours < 0:
-            raise ValueError("total_hours должен быть >= 0")
-        existing.total_hours = total_hours
-        existing.save()
-    
-    return existing.to_response()
 
 
 def delete_load(load_id):
-    existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
-    if existing is None:
+    try:
+        with db_transaction():
+            query = CalculatedLoad.update(is_active=False).where(
+                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+            )
+            rows_updated = query.execute()
+            return rows_updated > 0
+    except Exception:
         return False
-    existing.is_active = False
-    existing.save()
-    return True
 
 
 if __name__ == '__main__':
