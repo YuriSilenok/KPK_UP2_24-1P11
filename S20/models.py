@@ -58,13 +58,14 @@ class AcademicPeriod(BaseModel):
 
     def soft_delete(self):
     """
-    Удаляет учебный период из БД.
-    Возвращает True, если запись была удалена, иначе False.
+    Мягкое удаление: помечает период как неактивный.
+    Возвращает True, если запись была помечена, иначе False.
     """
-    try:
-        return self.delete_instance() > 0
-    except Exception:
-        return False
+    if self.is_active:
+        self.is_active = False
+        self.save()
+        return True
+    return False
 
     @classmethod
     def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None):
