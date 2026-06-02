@@ -51,10 +51,14 @@ class BaseModel(Model):
         return super().save(*args, **kwargs)
 
     def deactivate(self):
-        """Мягкое удаление записи. Возвращает True при успехе."""
-        self.is_active = False
-        self.save()
-        return True
+        """Мягкое удаление записи. Возвращает True при успехе, False при ошибке."""
+        try:
+            self.is_active = False
+            self.save()
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при деактивации {self.__class__.__name__} {self.id}: {e}")
+            return False
 
 
 class Profile(BaseModel):
@@ -107,7 +111,7 @@ class Position(BaseModel):
 
         if has_active:
             logger.warning(f"Невозможно удалить должность {self.id}: есть активные ставки")
-            raise ConflictError("Невозможно удалить должность: есть активные связанные ставки сотрудников.")
+            return False
 
         self.is_active = False
         self.save()
@@ -189,9 +193,13 @@ class EmployeePosition(BaseModel):
         self.save()
 
     def deactivate(self):
-        self.is_active = False
-        self.save()
-        return True
+        try:
+            self.is_active = False
+            self.save()
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при деактивации ставки {self.id}: {e}")
+            return False
 
 
 class Leave(BaseModel):
@@ -253,13 +261,14 @@ class Leave(BaseModel):
         super().save(*args, **kwargs)
 
     def deactivate(self):
-        # Проверка возможности удаления: нельзя удалить отпуск, если он ACTIVE
-        if self.status == "ACTIVE":
-            raise ConflictError("Невозможно удалить активный отпуск. Сначала измените его статус.")
-        
-        self.is_active = False
-        self.save()
-        return True
+        # Убрано ограничение на удаление активного отпуска согласно doc.md
+        try:
+            self.is_active = False
+            self.save()
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при деактивации отпуска {self.id}: {e}")
+            return False
 
 
 class SickLeave(BaseModel):
@@ -330,10 +339,11 @@ class SickLeave(BaseModel):
         super().save(*args, **kwargs)
 
     def deactivate(self):
-        # Проверка возможности удаления: нельзя удалить открытый больничный
-        if self.status == "OPEN":
-            raise ConflictError("Невозможно удалить открытый больничный. Сначала закройте его.")
-        
-        self.is_active = False
-        self.save()
-        return True
+        # Убрано ограничение на удаление открытого больничного согласно doc.md
+        try:
+            self.is_active = False
+            self.save()
+            return True
+        except Exception as e:
+            logger.error(f"Ошибка при деактивации больничного {self.id}: {e}")
+            return False
