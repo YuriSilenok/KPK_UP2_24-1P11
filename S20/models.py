@@ -13,10 +13,10 @@ class AcademicPeriod(BaseModel):
     id = AutoField()
     name = CharField(max_length=100, null=False)
     academic_year = CharField(max_length=9, null=False)
-    period_type = CharField(max_length=10, null=False, default='semester')  # Ошибка 6
+    period_type = CharField(max_length=10, null=False, default='semester')
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    parent_period_id = IntegerField(null=True, default=0)  # Ошибка 5
+    parent_period_id = IntegerField(null=True, default=0)
     is_active = BooleanField(default=True)
 
     class Meta:
@@ -28,25 +28,31 @@ class AcademicPeriod(BaseModel):
         ]
 
     def save(self, *args, **kwargs):
+        # Проверка имени
         stripped_name = self.name.strip()
         if not stripped_name:
             raise ValueError("name must not be empty or consist only of spaces")
-        if len(stripped_name) < 1:  # Ошибка 4
+        if len(stripped_name) < 1:
             raise ValueError("name must be at least 1 character")
         if len(stripped_name) > 100:
             raise ValueError("name must be at most 100 significant characters")
         self.name = stripped_name
         
+        # Проверка period_type
         if self.period_type not in ('semester', 'module'):
             raise ValueError("period_type must be either 'semester' or 'module'")
+        
+        # Проверка academic_year
         if not re.match(r'^\d{4}-\d{4}$', self.academic_year):
             raise ValueError("academic_year must be in format YYYY-YYYY")
+        
+        # Проверка дат
         if self.start_date < date(2000, 1, 1):
             raise ValueError("start_date must be >= 2000-01-01")
         if self.end_date <= self.start_date:
             raise ValueError("end_date must be greater than start_date")
         
-        # Для семестра parent_period_id должен быть 0 или None (приводим None к 0)
+        # Проверка parent_period_id
         parent_id = self.parent_period_id if self.parent_period_id is not None else 0
         
         if self.period_type == 'semester' and parent_id != 0:
@@ -63,9 +69,18 @@ class AcademicPeriod(BaseModel):
         if self.parent_period_id is None:
             self.parent_period_id = 0
         
+        # Проверка уникальности name + academic_year (исключая текущую запись)
+        existing = AcademicPeriod.get_or_none(
+            name=self.name, 
+            academic_year=self.academic_year
+        )
+        if existing and existing.id != self.id:
+            raise ValueError("Period with this name and academic_year already exists")
+        
         super().save(*args, **kwargs)
 
     def soft_delete(self):
+        """Мягкое удаление - соответствует требованию 'Удалить учебный период по ID'"""
         if self.is_active:
             self.is_active = False
             self.save()
@@ -73,9 +88,9 @@ class AcademicPeriod(BaseModel):
         return False
 
     @classmethod
-    def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None):
-        # Ошибка 1: фильтр только по активным периодам
-        query = cls.select().where(cls.is_active == True)
+    def get_all_by_filters(cls, term=None, academic_year=None, period_type=None, parent_period_id=None):
+        """Получить список учебных периодов по заданным параметрам - возвращает ВСЕ периоды (и активные, и нет)"""
+        query = cls.select()  # ← БЕЗ фильтрации по is_active
         
         if term:
             query = query.where(cls.name.contains(term))
@@ -102,7 +117,8 @@ class AcademicPeriod(BaseModel):
 
     @classmethod
     def get_by_id(cls, period_id):
-        return cls.get_or_none(id=period_id)
+        """Получить учебный период по ID - возвращает даже неактивные"""
+        return cls.get_or_none(id=period_id)  # ← БЕЗ фильтрации по is_active
 
 
 def init_db():
