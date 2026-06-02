@@ -41,8 +41,18 @@ class AcademicPeriod(BaseModel):
         if self.period_type not in ('semester', 'module'):
             raise ValueError("period_type must be either 'semester' or 'module'")
 
-        if not re.match(r'^\d{4}-\d{4}$', self.academic_year):
+        match = re.match(r'^(\d{4})-(\d{4})$', self.academic_year)
+
+        if not match:
             raise ValueError("academic_year must be in format YYYY-YYYY")
+
+        start_year = int(match.group(1))
+        end_year = int(match.group(2))
+
+        if end_year != start_year + 1:
+            raise ValueError(
+                "academic_year must contain consecutive years"
+            )
 
         if self.start_date < date(2000, 1, 1):
             raise ValueError("start_date must be >= 2000-01-01")
@@ -69,6 +79,15 @@ class AcademicPeriod(BaseModel):
                     "parent_period_id must reference a semester"
                 )
 
+        existing = AcademicPeriod.get_or_none(
+            (AcademicPeriod.name == self.name) &
+            (AcademicPeriod.academic_year == self.academic_year)
+        )
+
+        if existing is not None and existing.id != self.id:
+            raise ValueError(
+                "AcademicPeriod with this name and academic_year already exists"
+            )
         try:
             super().save(*args, **kwargs)
 
@@ -78,16 +97,12 @@ class AcademicPeriod(BaseModel):
             )
 
     def soft_delete(self):
-        """
-        Мягкое удаление учебного периода.
-        Возвращает результат удаления.
-        """
         if self.is_active:
             self.is_active = False
             self.save()
-            return {"result": True}
+            return True
 
-        return {"result": False}
+        return False
 
     @classmethod
     def get_all_by_filters(
@@ -130,6 +145,7 @@ class AcademicPeriod(BaseModel):
 
         if period is None:
             return None
+
         return {
             "id": period.id,
             "name": period.name,
@@ -140,6 +156,7 @@ class AcademicPeriod(BaseModel):
             "parent_period_id": period.parent_period_id,
             "is_active": period.is_active
         }
+
 
 def init_db():
     db.connect()
