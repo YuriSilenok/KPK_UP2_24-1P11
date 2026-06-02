@@ -98,7 +98,6 @@ def create_load(teacher_id, period_id, total_hours=None):
 def update_load(load_id, total_hours=None):
     # Если total_hours не передан, обновление не требуется
     if total_hours is None:
-        # Возвращаем текущую запись без изменений
         existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
         return existing.to_response() if existing else None
     
@@ -116,9 +115,11 @@ def update_load(load_id, total_hours=None):
             if rows_updated == 0:
                 return None
             
-            # Возвращаем обновленную запись
-            updated = CalculatedLoad.get_by_id(load_id)
-            return updated.to_response()
+            # Получаем обновленную запись через get_or_none
+            updated = CalculatedLoad.get_or_none(
+                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+            )
+            return updated.to_response() if updated else None
     except Exception:
         return None
 
