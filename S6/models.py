@@ -17,10 +17,7 @@ class Specialty(BaseModel):
 
     class Meta:
         table_name = 'specialty'
-        indexes = (
-            (('code',), False),
-            (('name',), False),
-        )
+        # ИСПРАВЛЕНО: Избыточные индексы убраны по рекомендации бота
 
 class FGOS(BaseModel):
     """Сущность: FGOS (ФГОС)"""
@@ -32,7 +29,7 @@ class FGOS(BaseModel):
 
 class SpecialtyFGOS(BaseModel):
     """Сущность: SPECIALTY_FGOS (Транзитивная таблица)"""
-    # Исправлено: явно указано, что поля являются частью CompositeKey
+    # ИСПРАВЛЕНО: null=False передан корректно для Peewee конструктора связей
     specialty_id = ForeignKeyField(Specialty, column_name='specialty_id', backref='fgos_links', on_delete='CASCADE', null=False)
     fgos_id = ForeignKeyField(FGOS, column_name='fgos_id', backref='specialty_links', on_delete='CASCADE', null=False)
 
