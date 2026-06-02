@@ -17,6 +17,10 @@ class Specialty(BaseModel):
 
     class Meta:
         table_name = 'specialty'
+        indexes = (
+            (('code',), False),
+            (('name',), False),
+        )
 
 class FGOS(BaseModel):
     """Сущность: FGOS (ФГОС)"""
@@ -28,13 +32,12 @@ class FGOS(BaseModel):
 
 class SpecialtyFGOS(BaseModel):
     """Сущность: SPECIALTY_FGOS (Транзитивная таблица)"""
-    # ИСПРАВЛЕНО: Явный null=False для запрета NULL по требованию препода
+    # Исправлено: явно указано, что поля являются частью CompositeKey
     specialty_id = ForeignKeyField(Specialty, column_name='specialty_id', backref='fgos_links', on_delete='CASCADE', null=False)
     fgos_id = ForeignKeyField(FGOS, column_name='fgos_id', backref='specialty_links', on_delete='CASCADE', null=False)
 
     class Meta:
         table_name = 'specialty_fgos'
-        # ИСПРАВЛЕНО: Убран лишний id, задан составной первичный ключ из двух полей
         primary_key = CompositeKey('specialty_id', 'fgos_id')
 
 def init_db():
@@ -46,4 +49,4 @@ if __name__ == "__main__":
     if os.path.exists(db_path):
         os.remove(db_path)
     init_db()
-    print("УСПЕХ: База данных specialties.db успешно создана без ошибок!")
+    print("УСПЕХ: База данных specialties.db успешно создана!")
