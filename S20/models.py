@@ -56,7 +56,10 @@ class AcademicPeriod(BaseModel):
     Удаляет учебный период из БД.
     Возвращает True, если запись была удалена, иначе False.
     """
-    return self.delete_instance() > 0
+    try:
+        return self.delete_instance() > 0
+    except Exception:
+        return False
 
     @classmethod
     def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None):
