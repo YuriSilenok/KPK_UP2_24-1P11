@@ -1,6 +1,3 @@
-Вот полностью исправленный и готовый к использованию файл `models.py`. В код внесены все необходимые правки из замечаний: добавлена проверка «не в будущем» для отпусков и больничных, явная валидация внешних ключей, унифицирована логика дат и исправлены опечатки. Файл заканчивается корректно, без обрывов.
-
-```python
 import datetime as dt
 import logging
 from peewee import *
@@ -47,6 +44,11 @@ class Position(BaseModel):
         table_name = "positions"
 
     def save(self, *args, **kwargs):
+        if len(self.title) > 255:
+            raise ValueError("Название должности не может превышать 255 символов.")
+        if len(self.code) > 50:
+            raise ValueError("Код должности не может превышать 50 символов.")
+            
         if self.code:
             existing = Position.select().where(
                 (Position.code == self.code) &
@@ -100,17 +102,21 @@ class EmployeePosition(BaseModel):
         if self.end_date and self.end_date < self.start_date:
             raise ValueError("Дата окончания не может быть раньше даты начала.")
 
-        if self.is_primary:
-            EmployeePosition.update(is_primary=False).where(
-                (EmployeePosition.profile == self.profile) &
-                (EmployeePosition.id != self.id) &
-                (EmployeePosition.is_active == True) &
-                (EmployeePosition.is_primary == True)
-            ).execute()
-
-        super().save(*args, **kwargs)
+        # Транзакция для гарантии атомарности переключения основной ставки
+        with db.atomic():
+            if self.is_primary:
+                EmployeePosition.update(is_primary=False).where(
+                    (EmployeePosition.profile == self.profile) &
+                    (EmployeePosition.id != self.id) &
+                    (EmployeePosition.is_active == True) &
+                    (EmployeePosition.is_primary == True)
+                ).execute()
+            super().save(*args, **kwargs)
 
     def update_position(self, new_position_id):
+        if self.position_id == new_position_id:
+            return
+            
         pos = Position.get_or_none(
             (Position.id == new_position_id) & (Position.is_active == True)
         )
@@ -173,8 +179,8 @@ class Leave(BaseModel):
         return overlap_leave or overlap_sick
 
     def save(self, *args, **kwargs):
-        if not self.employee_position:
-            raise ValueError("Поле employee_position является обязательным.")
+        if not self.employee_position or not EmployeePosition.get_or_none(EmployeePosition.id == self.employee_position_id):
+            raise ValueError("Ставка сотрудника не существует.")
 
         if self.start_date > dt.date.today():
             raise ValueError("Дата начала отпуска не может быть в будущем.")
@@ -209,7 +215,7 @@ class SickLeave(BaseModel):
     start_date = DateField()
     end_date = DateField()
     certificate_number = CharField(max_length=50)
-    status = CharField(max_length=20)
+    status = CharField(max_length=20, default="OPEN")
 
     class Meta:
         table_name = "sick_leaves"
@@ -233,8 +239,8 @@ class SickLeave(BaseModel):
         return overlap_sick or overlap_leave
 
     def save(self, *args, **kwargs):
-        if not self.employee_position:
-            raise ValueError("Поле employee_position является обязательным.")
+        if not self.employee_position or not EmployeePosition.get_or_none(EmployeePosition.id == self.employee_position_id):
+            raise ValueError("Ставка сотрудника не существует.")
 
         if self.start_date > dt.date.today():
             raise ValueError("Дата начала больничного не может быть в будущем.")
@@ -268,4 +274,3 @@ class SickLeave(BaseModel):
         self.is_active = False
         self.save()
         return True
-```
