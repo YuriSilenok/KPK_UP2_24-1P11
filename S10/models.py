@@ -1,10 +1,8 @@
 from peewee import *
 import datetime
 
-# Инициализация базы данных (замените на вашу конфигурацию)
-db = SqliteDatabase('app.db') 
+db = SqliteDatabase('app.db')
 
-# Базовая модель с поддержкой Soft Delete и временными метками
 class BaseModel(Model):
     is_active = BooleanField(default=True)
     created_at = DateTimeField(default=datetime.datetime.now)
@@ -18,12 +16,11 @@ class BaseModel(Model):
         return super().save(*args, **kwargs)
 
     def deactivate(self):
+        """Базовый метод мягкого удаления"""
         self.is_active = False
         self.save()
+        return True
 
-# Заглушка для модели Profile (необходима для ForeignKeyField)
-# Если у вас уже есть этот класс в другом файле, удалите это определение
-# и добавьте соответствующий import
 class Profile(BaseModel):
     full_name = CharField(max_length=255)
     
@@ -31,13 +28,27 @@ class Profile(BaseModel):
         table_name = 'profiles'
 
 class Position(BaseModel):
-    # Убрано unique=True у title согласно замечаниям
+    # Убрано unique=True согласно требованиям
     title = CharField(max_length=255) 
     code = CharField(max_length=50, unique=True)
     department = CharField(max_length=100)
 
     class Meta:
         table_name = 'positions'
+
+    def deactivate(self):
+        """Проверка связей перед удалением. Возвращает True/False."""
+        has_active_positions = EmployeePosition.select().where(
+            (EmployeePosition.position == self) & 
+            (EmployeePosition.is_active == True)
+        ).exists()
+        
+        if has_active_positions:
+            return False
+            
+        self.is_active = False
+        self.save()
+        return True
 
 class EmployeePosition(BaseModel):
     profile = ForeignKeyField(Profile, backref='employee_positions')
@@ -51,22 +62,32 @@ class EmployeePosition(BaseModel):
         table_name = 'employee_positions'
 
     def save(self, *args, **kwargs):
-        # Валидация обязательности связей
+        # Валидация обязательности внешних ключей
         if not self.profile or not self.position:
             raise ValueError("Поля profile и position являются обязательными.")
-        
-        # Логика переключения основной ставки
+            
+        # Проверка корректности дат
+        if self.end_date and self.end_date < self.start_date:
+            raise ValueError("Дата окончания не может быть раньше даты начала.")
+            
+        # Логика переключения основной ставки только при изменении флага на True
         if self.is_primary:
-            EmployeePosition.update(is_primary=False).where(
+            existing_primary = EmployeePosition.get_or_none(
                 (EmployeePosition.profile == self.profile) & 
-                (EmployeePosition.id != self.id) &
-                (EmployeePosition.is_primary == True)
-            ).execute()
+                (EmployeePosition.is_primary == True) & 
+                (EmployeePosition.id != self.id)
+            )
+            if existing_primary:
+                EmployeePosition.update(is_primary=False).where(
+                    (EmployeePosition.profile == self.profile) & 
+                    (EmployeePosition.id != self.id) &
+                    (EmployeePosition.is_primary == True)
+                ).execute()
             
         super().save(*args, **kwargs)
 
     def update_position(self, new_position_id):
-        # Проверка на активные отпуска и больничные
+        """Смена должности с проверкой активных периодов"""
         active_leaves = Leave.select().where(
             (Leave.employee_position == self) & 
             (Leave.status == 'ACTIVE')
@@ -83,11 +104,17 @@ class EmployeePosition(BaseModel):
         self.position_id = new_position_id
         self.save()
 
+    def deactivate(self):
+        """Мягкое удаление ставки"""
+        self.is_active = False
+        self.save()
+        return True
+
 class Leave(BaseModel):
     employee_position = ForeignKeyField(EmployeePosition, backref='leaves')
     start_date = DateField()
     end_date = DateField()
-    type = CharField(max_length=20)
+    leave_type = CharField(max_length=20)
     status = CharField(max_length=20)
 
     class Meta:
@@ -100,13 +127,28 @@ class Leave(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания не может быть раньше даты начала.")
             
+        # Явная валидация перечислений
+        valid_types = ['ANNUAL', 'UNPAID', 'STUDY']
+        valid_statuses = ['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED']
+        
+        if self.leave_type not in valid_types:
+            raise ValueError(f"Недопустимый тип отпуска. Разрешены: {valid_types}")
+        if self.status not in valid_statuses:
+            raise ValueError(f"Недопустимый статус. Разрешены: {valid_statuses}")
+            
         super().save(*args, **kwargs)
+
+    def deactivate(self):
+        """Мягкое удаление отпуска"""
+        self.is_active = False
+        self.save()
+        return True
 
 class SickLeave(BaseModel):
     employee_position = ForeignKeyField(EmployeePosition, backref='sick_leaves')
     start_date = DateField()
     end_date = DateField()
-    certificate_number = CharField(max_length=50)
+    certificate_number = CharField(max_length=50, unique=True)
     status = CharField(max_length=20)
 
     class Meta:
@@ -116,8 +158,19 @@ class SickLeave(BaseModel):
         if not self.employee_position:
             raise ValueError("Поле employee_position является обязательным.")
 
-        # Исправлено: разрешена ситуация, когда end_date равен start_date
+        # Исправлено: разрешена ситуация end_date == start_date
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания не может быть раньше даты начала.")
         
+        # Явная валидация перечислений
+        valid_statuses = ['OPEN', 'CLOSED', 'EXTENDED']
+        if self.status not in valid_statuses:
+            raise ValueError(f"Недопустимый статус. Разрешены: {valid_statuses}")
+        
         super().save(*args, **kwargs)
+
+    def deactivate(self):
+        """Мягкое удаление больничного"""
+        self.is_active = False
+        self.save()
+        return True
