@@ -1,6 +1,7 @@
 from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField, Check, IntegrityError
 from contextlib import contextmanager
 
+# Инициализация базы данных
 db = SqliteDatabase('workload.db')
 
 @contextmanager
@@ -19,7 +20,8 @@ class CalculatedLoad(Model):
 
     class Meta:
         database = db
-        table_name = 'calculated_loads'
+        # Замечание 1: Унифицировали название таблицы в соответствии с doc.md
+        table_name = 'calculated_load'
         indexes = ((('teacher_id', 'period_id'), True),)
 
     def to_response(self):
@@ -38,6 +40,7 @@ class UniqueConstraintError(Exception):
 
 
 def init_db():
+    """Функция инициализирующая БД"""
     db.connect()
     db.create_tables([CalculatedLoad], safe=True)
     db.close()
@@ -64,14 +67,25 @@ def get_active_loads(teacher_id=None, period_id=None, limit=100, offset=0):
 
 
 def get_active_load_by_id(load_id):
+    # Замечание 7: Явная валидация входного идентификатора
+    if load_id <= 0:
+        raise ValueError("load_id должен быть > 0")
+        
+    # Замечание 2: Перехватываем строго исключение DoesNotExist вместо общего Exception
     try:
-        load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
-        return load.to_response() if load else None
-    except Exception:
+        load = CalculatedLoad.get((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+        return load.to_response()
+    except CalculatedLoad.DoesNotExist:
         return None
 
 
 def create_load(teacher_id, period_id, total_hours=None):
+    """
+    Добавить CalculatedLoad.
+    
+    Замечание 6: Если параметр total_hours не передан (равен None), 
+    ему автоматически присваивается значение по умолчанию 0.0, как требует doc.md.
+    """
     if teacher_id <= 0:
         raise ValueError("teacher_id должен быть > 0")
     if period_id <= 0:
@@ -82,8 +96,29 @@ def create_load(teacher_id, period_id, total_hours=None):
     if total_hours < 0:
         raise ValueError("total_hours должен быть >= 0")
     
-    try:
-        with db_transaction():
+    with db_transaction():
+        # Замечание 5: Явная проверка уникальности до вызова create()
+        # Ищем вообще любую запись с этой парой ключей (даже удаленную)
+        existing = CalculatedLoad.get_or_none(
+            (CalculatedLoad.teacher_id == teacher_id) & 
+            (CalculatedLoad.period_id == period_id)
+        )
+        
+        if existing:
+            # Если запись есть и она активна — это жесткий конфликт уникальности
+            if existing.is_active:
+                raise UniqueConstraintError(
+                    f"Запись уже существует для teacher_id={teacher_id} и period_id={period_id}"
+                )
+            else:
+                # Если запись была мягко удалена (is_active=False), то вместо создания дубля
+                # мы её «реанимируем» и обновляем часы. Так мы не поймаем IntegrityError от БД.
+                existing.total_hours = total_hours
+                existing.is_active = True
+                existing.save()
+                return existing.to_response()
+        
+        try:
             load = CalculatedLoad.create(
                 teacher_id=teacher_id,
                 period_id=period_id,
@@ -91,51 +126,54 @@ def create_load(teacher_id, period_id, total_hours=None):
                 is_active=True
             )
             return load.to_response()
-    except IntegrityError:
-        raise UniqueConstraintError("Запись с таким teacher_id и period_id уже существует")
+        except IntegrityError:
+            raise UniqueConstraintError(
+                f"Ошибка уникальности: пара teacher_id={teacher_id} и period_id={period_id} уже занята"
+            )
 
 
 def update_load(load_id, total_hours=None):
-    # Если total_hours не передан, обновление не требуется
-    if total_hours is None:
-        existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
-        return existing.to_response() if existing else None
-    
-    if total_hours < 0:
+    # Замечание 7: Явная валидация load_id
+    if load_id <= 0:
+        raise ValueError("load_id должен быть > 0")
+        
+    if total_hours is not None and total_hours < 0:
         raise ValueError("total_hours должен быть >= 0")
-    
-    try:
-        with db_transaction():
-            # Используем update() с явным фильтром для предотвращения race conditions
-            query = CalculatedLoad.update(total_hours=total_hours).where(
-                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
-            )
-            rows_updated = query.execute()
+        
+    with db_transaction():
+        # Замечания 3 и 4: Получаем запись ДО обновления (проверка существования + защита от race condition)
+        load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+        if not load:
+            return None  # Четкий возврат None, если записи нет или она архивирована
             
-            if rows_updated == 0:
-                return None
+        # Если total_hours не передан, ничего не меняем, возвращаем текущее состояние
+        if total_hours is None:
+            return load.to_response()
             
-            # Получаем обновленную запись через get_or_none
-            updated = CalculatedLoad.get_or_none(
-                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
-            )
-            return updated.to_response() if updated else None
-    except Exception:
-        return None
+        load.total_hours = total_hours
+        load.save()
+        return load.to_response()
 
 
 def delete_load(load_id):
-    try:
-        with db_transaction():
-            query = CalculatedLoad.update(is_active=False).where(
-                (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
-            )
-            rows_updated = query.execute()
-            return rows_updated > 0
-    except Exception:
-        return False
+    # Замечание 7: Явная валидация load_id
+    if load_id <= 0:
+        raise ValueError("load_id должен быть > 0")
+        
+    with db_transaction():
+        # Замечание 4: Сначала проверяем состояние записи, чтобы избежать race condition
+        load = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+        if not load:
+            return False
+            
+        # Надежное обновление через execute(), гарантирующее точный результат для бота
+        query = CalculatedLoad.update(is_active=False).where(
+            (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
+        )
+        rows_updated = query.execute()
+        return rows_updated > 0
 
 
 if __name__ == '__main__':
     init_db()
-    print("Таблица calculated_loads создана")
+    print("Таблица calculated_load успешно создана и готова к работе.")
