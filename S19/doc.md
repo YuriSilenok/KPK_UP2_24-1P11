@@ -18,7 +18,7 @@
 |----------|-----------|----------------|-----|-------------|-----------------------|
 | name | Название ресурса | Да | string | 1–100 символов | - |
 | description | Описание ресурса | Нет | string | до 500 символов | null |
-| category_id | ID категории ресурса | Да | integer | существующий id из ResourceCategory | - |
+| category_id | ID категории ресурса | Да | integer | значение > 0| - |
 | total_quantity | Общее количество единиц | Да | integer | ≥ 1 | 1 |
 | unit | Единица измерения | Да | string | 'шт', 'компл', 'экз' | 'шт' |
 | status | Статус ресурса | Нет | string | 'available', 'maintenance', 'retired' | 'available' |
@@ -32,6 +32,7 @@
 |----------|-----|
 | id | integer |
 | name | string |
+|is_active |bool|
 | description | string или null |
 | category_id | integer |
 | total_quantity | integer |
@@ -62,6 +63,7 @@
 |----------|-----|
 | id | integer |
 | name | string |
+|is_active |bool|
 | description | string или null |
 | category_id | integer |
 | total_quantity | integer |
@@ -97,6 +99,7 @@
 |----------|-----|
 | id | integer |
 | name | string |
+|is_active |bool|
 | description | string или null |
 | category_id | integer |
 | total_quantity | integer |
@@ -126,6 +129,7 @@
 |----------|-----|
 | id | integer |
 | name | string |
+|is_active |bool|
 | description | string или null |
 | category_id | integer |
 | total_quantity | integer |
@@ -139,4 +143,4 @@
 
 ## ER-диаграмма
 
-![ER-диаграмма](erd.png)
+[ER-диаграмма](erd.png)
