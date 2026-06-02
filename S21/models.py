@@ -1,251 +1,68 @@
-### Вариант №21. Сервис каникул и праздников (Holiday)
-
-### Работа с праздниками (Holiday)
-
-#### Добавление Holiday
-
-Информация требуемая для создания Holiday
-
-| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|----------------------|
-| name | Название праздника | Да | string | Уникальное, не пустое, до 100 символов | — |
-| date | Дата праздника | Да | date | Конкретная дата | — |
-| type | Тип (ссылка на HolidayType) | Да | integer | Ссылка на HolidayType | — |
-| is_active | Статус активности | Нет | boolean | — | True |
-
-Информация возвращаемая в случае удачного создания Holiday
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| date | date | Дата |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-Уникальных комбинаций параметров нет.
-
-#### Изменение Holiday по ID
-
-Информация требуемая для изменения Holiday по ID
-
-| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| id | Идентификатор | Да | integer | Существует в БД | — |
-| name | Название праздника | Нет | string | Уникальное, не пустое, до 100 символов | — |
-| date | Дата праздника | Нет | date | Не пустое | — |
-| type | Тип (ссылка на HolidayType) | Нет | integer | Ссылка на HolidayType | — |
-| is_active | Статус активности | Нет | boolean | — | — |
-
-Обновляются только переданные поля, остальные остаются без изменений.
-
-Информация возвращаемая в случае удачного изменения Holiday
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| date | date | Дата |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-#### Удаление Holiday по ID
-
-Вернет True, если Holiday была закрыта (удалена), иначе вернет False.
-
-#### Получить Holiday по ID
-
-Информация возвращаемая в случае удачного поиска Holiday по ID
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| date | date | Дата |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-#### Получить список Holiday по заданным параметрам
-
-Информация требуемая для получения списка Holiday
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| date_from | date | Дата начала периода |
-| date_to | date | Дата окончания периода |
-| type | integer | Тип праздника (ссылка на HolidayType) |
-
-Информация возвращается в виде списка Holiday
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| date | date | Дата |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-### Работа с периодами каникул (VacationPeriod)
-
-#### Добавление VacationPeriod
-
-| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|----------------------|
-| name | Название периода | Да | string | Не пустое, до 100 символов | — |
-| start_date | Дата начала каникул | Да | date | Дата начала | — |
-| end_date | Дата окончания каникул | Да | date | Дата окончания >= start_date | — |
-| type | Тип (ссылка на HolidayType) | Да | integer | Ссылка на HolidayType | — |
-| is_active | Статус активности | Нет | boolean | — | True |
-
-Информация возвращаемая в случае удачного создания VacationPeriod
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| start_date | date | Дата начала |
-| end_date | date | Дата окончания |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-Уникальных комбинаций параметров нет.
-
-#### Изменение VacationPeriod по ID
-
-Информация требуемая для изменения VacationPeriod по ID
-
-| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| id | Идентификатор | Да | integer | Существует в БД | — |
-| name | Название периода | Нет | string | Не пустое, до 100 символов | — |
-| start_date | Дата начала каникул | Нет | date | Не пустое | — |
-| end_date | Дата окончания каникул | Нет | date | Не пустое, >= start_date | — |
-| type | Тип (ссылка на HolidayType) | Нет | integer | Ссылка на HolidayType | — |
-| is_active | Статус активности | Нет | boolean | — | — |
-
-Обновляются только переданные поля, остальные остаются без изменений.
-
-Информация возвращаемая в случае удачного изменения VacationPeriod
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| start_date | date | Дата начала |
-| end_date | date | Дата окончания |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-#### Удаление VacationPeriod по ID
-
-Вернет True, если VacationPeriod был закрыт (удален), иначе вернет False.
-
-#### Получить VacationPeriod по ID
-
-Информация возвращаемая в случае удачного поиска VacationPeriod по ID
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| start_date | date | Дата начала |
-| end_date | date | Дата окончания |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-#### Получить список VacationPeriod
-
-Информация требуемая для получения списка VacationPeriod
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| type | integer | Тип периода (ссылка на HolidayType) |
-| is_active | boolean | Фильтр по статусу активности (True — активные, False — неактивные) |
-
-Информация возвращается в виде списка VacationPeriod
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| start_date | date | Дата начала |
-| end_date | date | Дата окончания |
-| type | integer | Тип |
-| is_active | boolean | Статус активности |
-
-Уникальных комбинаций параметров нет.
-
-### Работа с типами праздников (HolidayType)
-
-#### Добавление HolidayType
-
-| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|----------------------|
-| name | Название типа | Да | string | Уникальное, не пустое, до 50 символов | — |
-| code | Код типа | Да | string | Уникальное, "holiday" или "vacation" | — |
-| is_active | Статус активности | Нет | boolean | — | True |
-
-Информация возвращаемая в случае удачного создания HolidayType
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| code | string | Код |
-| is_active | boolean | Статус активности |
-
-Уникальных комбинаций параметров нет.
-
-#### Изменение HolidayType по ID
-
-Информация требуемая для изменения HolidayType по ID
-
-| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| id | Идентификатор | Да | integer | Существует в БД | — |
-| name | Название типа | Нет | string | Уникальное, не пустое, до 50 символов | — |
-| code | Код типа | Нет | string | Уникальное, "holiday" или "vacation" | — |
-| is_active | Статус активности | Нет | boolean | — | — |
-
-Обновляются только переданные поля, остальные остаются без изменений.
-
-Информация возвращаемая в случае удачного изменения HolidayType
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| code | string | Код |
-| is_active | boolean | Статус активности |
-
-#### Удаление HolidayType по ID
-
-Вернет True, если HolidayType был закрыт (удален), иначе вернет False.
-
-#### Получить HolidayType по ID
-
-Информация возвращаемая в случае удачного поиска HolidayType по ID
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| code | string | Код |
-| is_active | boolean | Статус активности |
-
-#### Получить список HolidayType
-
-Информация возвращается в виде списка HolidayType
-
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| id | integer | Идентификатор |
-| name | string | Название |
-| code | string | Код |
-| is_active | boolean | Статус активности |
-
-### ER-диаграмма
-
-Файл `erd.png` добавлен в проект.
-
-![ER-диаграмма](erd.png)
+from peewee import *
+
+db = SqliteDatabase('holiday.db')
+
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+class HolidayType(BaseModel):
+    """Справочник типов: holiday (праздник) или vacation (каникулы)"""
+    id = PrimaryKeyField()
+    name = CharField(max_length=50, unique=True, null=False)
+    code = CharField(
+        max_length=8,
+        unique=True,
+        null=False,
+        constraints=[Check("code IN ('holiday', 'vacation')")]
+    )
+    is_active = BooleanField(default=True, null=False)
+
+    class Meta:
+        table_name = 'holiday_type'
+
+class Holiday(BaseModel):
+    """Праздники"""
+    id = PrimaryKeyField()
+    name = CharField(max_length=100, null=False)
+    date = DateField(null=False)
+    type = ForeignKeyField(HolidayType, backref='holidays', null=False)
+    is_active = BooleanField(default=True, null=False)
+
+    class Meta:
+        table_name = 'holiday'
+
+class VacationPeriod(BaseModel):
+    """Каникулы (период)"""
+    id = PrimaryKeyField()
+    name = CharField(max_length=100, null=False)
+    start_date = DateField(null=False)
+    end_date = DateField(
+        null=False,
+        constraints=[Check('end_date >= start_date')]
+    )
+    type = ForeignKeyField(HolidayType, backref='vacations', null=False)
+    is_active = BooleanField(default=True, null=False)
+
+    class Meta:
+        table_name = 'vacation_period'
+
+    def save(self, *args, **kwargs):
+        if self.end_date < self.start_date:
+            raise ValueError("end_date должен быть >= start_date")
+        return super().save(*args, **kwargs)
+
+def init_db():
+    db.connect()
+    db.create_tables([HolidayType, Holiday, VacationPeriod], safe=True)
+    
+    # Добавляем типы по умолчанию
+    if HolidayType.select().count() == 0:
+        HolidayType.create(name='Праздник', code='holiday')
+        HolidayType.create(name='Каникулы', code='vacation')
+    
+    db.close()
+
+if __name__ == '__main__':
+    init_db()
+    print("База данных создана.")
