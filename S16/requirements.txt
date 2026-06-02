@@ -1,5 +1,4 @@
-peewee
+peewwe
 fastapi
 pydantic
-uvicorn
 uvicorn
