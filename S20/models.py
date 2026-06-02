@@ -12,11 +12,11 @@ class BaseModel(Model):
 class AcademicPeriod(BaseModel):
     id = AutoField()
     name = CharField(max_length=100, null=False)
-    academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, обязательный
-    period_type = CharField(max_length=10, null=False)  # semester, module
+    academic_year = CharField(max_length=9, null=False)
+    period_type = CharField(max_length=10, null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    parent_period_id = IntegerField(null=True, default=None)
+    parent_period_id = IntegerField(null=False, default=0)  # Исправлено
     is_active = BooleanField(default=True)
 
     class Meta:
@@ -67,9 +67,9 @@ class AcademicPeriod(BaseModel):
         return True
     return False
 
-   @classmethod
-def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None, page=1, per_page=20):
-    query = cls.select().where(cls.is_active == True)  # Только активные
+  @classmethod
+def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None):
+    query = cls.select()  # Без фильтра по is_active
     
     if term:
         query = query.where(cls.name.contains(term))
@@ -79,17 +79,6 @@ def name_contains(cls, term=None, academic_year=None, period_type=None, parent_p
         query = query.where(cls.period_type == period_type)
     if parent_period_id is not None:
         query = query.where(cls.parent_period_id == parent_period_id)
-    
-    # Пагинация
-    if page < 1:
-        page = 1
-    if per_page < 1:
-        per_page = 20
-    if per_page > 100:
-        per_page = 100
-    
-    offset = (page - 1) * per_page
-    query = query.limit(per_page).offset(offset)
     
     # Преобразуем QuerySet в список словарей с нужными полями
     result = []
@@ -105,6 +94,7 @@ def name_contains(cls, term=None, academic_year=None, period_type=None, parent_p
             "is_active": period.is_active
         })
     return result
+    
     @classmethod
     def get_by_id(cls, period_id):
         """
