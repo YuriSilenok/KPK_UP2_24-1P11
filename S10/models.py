@@ -52,13 +52,11 @@ class BaseModel(Model):
 
     def deactivate(self):
         """Мягкое удаление записи. Возвращает True при успехе, False при ошибке."""
-        try:
-            self.is_active = False
-            self.save()
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка при деактивации {self.__class__.__name__} {self.id}: {e}")
+        if not self.id:
             return False
+        self.is_active = False
+        self.save()
+        return True
 
 
 class Profile(BaseModel):
@@ -77,13 +75,6 @@ class Position(BaseModel):
 
     class Meta:
         table_name = "positions"
-
-    @classmethod
-    def get_active(cls, pk):
-        obj = cls.get_or_none((cls.id == pk) & (cls.is_active == True))
-        if not obj:
-            raise NotFoundError("Должность не найдена или неактивна.")
-        return obj
 
     def save(self, *args, **kwargs):
         if len(self.title) > 255:
@@ -110,7 +101,6 @@ class Position(BaseModel):
         ).exists()
 
         if has_active:
-            logger.warning(f"Невозможно удалить должность {self.id}: есть активные ставки")
             return False
 
         self.is_active = False
@@ -162,44 +152,12 @@ class EmployeePosition(BaseModel):
                 ).execute()
             super().save(*args, **kwargs)
 
-    def update_position(self, new_position_id):
-        if self.position_id == new_position_id:
-            return
-
-        pos = Position.get_or_none(
-            (Position.id == new_position_id) & (Position.is_active == True)
-        )
-        if not pos:
-            raise NotFoundError("Указанная должность не существует или неактивна.")
-
-        active_leaves = Leave.select().where(
-            (Leave.employee_position == self) &
-            (Leave.status == "ACTIVE") &
-            (Leave.is_active == True)
-        ).exists()
-
-        active_sick = SickLeave.select().where(
-            (SickLeave.employee_position == self) &
-            (SickLeave.status == "ACTIVE") &
-            (SickLeave.is_active == True)
-        ).exists()
-
-        if active_leaves or active_sick:
-            raise ConflictError(
-                "Невозможно изменить должность: у сотрудника есть активные отпуска или больничные листы."
-            )
-
-        self.position_id = new_position_id
-        self.save()
-
     def deactivate(self):
-        try:
-            self.is_active = False
-            self.save()
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка при деактивации ставки {self.id}: {e}")
+        if not self.id:
             return False
+        self.is_active = False
+        self.save()
+        return True
 
 
 class Leave(BaseModel):
@@ -261,14 +219,11 @@ class Leave(BaseModel):
         super().save(*args, **kwargs)
 
     def deactivate(self):
-        # Убрано ограничение на удаление активного отпуска согласно doc.md
-        try:
-            self.is_active = False
-            self.save()
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка при деактивации отпуска {self.id}: {e}")
+        if not self.id:
             return False
+        self.is_active = False
+        self.save()
+        return True
 
 
 class SickLeave(BaseModel):
@@ -339,11 +294,8 @@ class SickLeave(BaseModel):
         super().save(*args, **kwargs)
 
     def deactivate(self):
-        # Убрано ограничение на удаление открытого больничного согласно doc.md
-        try:
-            self.is_active = False
-            self.save()
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка при деактивации больничного {self.id}: {e}")
+        if not self.id:
             return False
+        self.is_active = False
+        self.save()
+        return True
