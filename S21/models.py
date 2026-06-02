@@ -10,7 +10,12 @@ class HolidayType(BaseModel):
     """Справочник типов: holiday (праздник) или vacation (каникулы)"""
     id = PrimaryKeyField()
     name = CharField(max_length=50, unique=True, null=False)
-    code = CharField(max_length=20, unique=True, null=False)
+    code = CharField(
+        max_length=8,
+        unique=True,
+        null=False,
+        constraints=[Check("code IN ('holiday', 'vacation')")]
+    )
 
     class Meta:
         table_name = 'holiday_type'
@@ -19,7 +24,7 @@ class Holiday(BaseModel):
     """Праздники"""
     id = PrimaryKeyField()
     name = CharField(max_length=100, unique=True, null=False)
-    date = DateField(null=False)  # ОСТАВЛЯЕМ ТОЛЬКО DATE (null=False!)
+    date = DateField(null=False)
     type = ForeignKeyField(HolidayType, backref='holidays', null=False)
     is_active = BooleanField(default=True, null=False)
 
@@ -31,34 +36,19 @@ class VacationPeriod(BaseModel):
     id = PrimaryKeyField()
     name = CharField(max_length=100, null=False)
     start_date = DateField(null=False)
-    end_date = DateField(null=False)
+    end_date = DateField(
+        null=False,
+        constraints=[Check('end_date >= start_date')]
+    )
     type = ForeignKeyField(HolidayType, backref='vacations', null=False)
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
         table_name = 'vacation_period'
 
-class Faculty(BaseModel):
-    """Отделения/факультеты"""
-    id = PrimaryKeyField()
-    name = CharField(max_length=100, unique=True, null=False)
-    short_name = CharField(max_length=50, null=True)
-
-    class Meta:
-        table_name = 'faculty'
-
-class HolidayFaculty(BaseModel):
-    """Связь праздников с отделениями"""
-    holiday = ForeignKeyField(Holiday, backref='faculties', on_delete='CASCADE', null=False)
-    faculty = ForeignKeyField(Faculty, backref='holidays', on_delete='CASCADE', null=False)
-
-    class Meta:
-        table_name = 'holiday_faculty'
-        primary_key = CompositeKey('holiday', 'faculty')
-
 def init_db():
     db.connect()
-    db.create_tables([HolidayType, Holiday, Faculty, HolidayFaculty], safe=True)
+    db.create_tables([HolidayType, Holiday, VacationPeriod], safe=True)
     
     # Добавляем типы по умолчанию
     if HolidayType.select().count() == 0:
