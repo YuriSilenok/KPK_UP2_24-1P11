@@ -2,232 +2,297 @@ from peewee import *
 from decimal import Decimal
 from playhouse.shortcuts import model_to_dict
 
-# Предполагается, что база данных уже инициализирована где-то в другом месте (например, в main.py)
-# from main import database
-
-# Если database не передается, можно создать временное подключение для демонстрации, но в реальном проекте импортируйте из main
-# database = SqliteDatabase('schedule.db') 
-
-class BaseModel(Model):
-    class Meta:
-        # database = database  # Раскомментируйте при интеграции с main.py
-        pass
-
-class Teacher(BaseModel):
+class Teacher(Model):
     id = AutoField()
-    full_name = CharField(max_length=255, constraints=[SQL('NOT NULL')])
-    
-    class Meta:
-        table_name = 'teachers'  # Множественное число для соответствия стандарту (опционально, но общепринято)
+    full_name = CharField(max_length=200, null=False)      # Varchar(200)
+    position = CharField(max_length=100, null=False)       # добавлено обязательное поле
 
-class Discipline(BaseModel):
+    class Meta:
+        table_name = 'teachers'
+
+class Discipline(Model):
     id = AutoField()
-    name = CharField(max_length=255, constraints=[SQL('NOT NULL')], unique=True)
-    
+    name = CharField(max_length=200, null=False, unique=True)  # Varchar(200)
+    hours_total = IntegerField(null=False)                     # добавлено обязательное поле
+
     class Meta:
         table_name = 'disciplines'
 
-class Group(BaseModel):
+class Group(Model):
     id = AutoField()
-    name = CharField(max_length=100, constraints=[SQL('NOT NULL')], unique=True)
-    
+    group_number = CharField(max_length=20, null=False, unique=True)  # Varchar(20), уникальное
+    specialty_id = IntegerField(null=False)                           # обязательное поле
+
     class Meta:
         table_name = 'groups'
 
-class Student(BaseModel):
+class Student(Model):
     id = AutoField()
-    full_name = CharField(max_length=255, constraints=[SQL('NOT NULL')])
-    student_number = CharField(max_length=50, constraints=[SQL('NOT NULL')], unique=True)  # Убран null=True
-    current_group_id = ForeignKeyField(Group, backref='students', field='id', constraints=[SQL('NOT NULL')])  # Убран null=True
-    
+    student_number = CharField(max_length=50, null=True, unique=True)  # необязательное
+    current_group_id = ForeignKeyField(Group, null=True, backref='students')
+    status = CharField(max_length=50, null=False)                      # обязательное поле
+
     class Meta:
         table_name = 'students'
 
-class TeachingAssignment(BaseModel):
+class LoadAssignment(Model):
     id = AutoField()
-    teacher_id = ForeignKeyField(Teacher, backref='assignments', field='id', constraints=[SQL('NOT NULL')])
-    discipline_id = ForeignKeyField(Discipline, backref='assignments', field='id', constraints=[SQL('NOT NULL')])
-    group_id = ForeignKeyField(Group, backref='assignments', field='id', constraints=[SQL('NOT NULL')])
-    semester = IntegerField(constraints=[SQL('CHECK (semester BETWEEN 1 AND 8)'), SQL('NOT NULL')])
-    load_hours = DecimalField(max_digits=10, decimal_places=2, constraints=[SQL('CHECK (load_hours > 0)'), SQL('NOT NULL')])
-    
+    teacher_id = ForeignKeyField(Teacher, null=False, backref='assignments')
+    discipline_id = ForeignKeyField(Discipline, null=False, backref='assignments')
+    group_id = ForeignKeyField(Group, null=False, backref='assignments')
+    semester = IntegerField(null=False, constraints=[SQL('CHECK (semester BETWEEN 1 AND 8)')])
+    load_hours = DecimalField(max_digits=5, decimal_places=2, null=False,   # Decimal(5,2)
+                              constraints=[SQL('CHECK (load_hours > 0)')])
+
     class Meta:
-        table_name = 'teaching_assignments'
+        table_name = 'load_assignments'
         indexes = (
-            (('teacher_id', 'discipline_id', 'group_id', 'semester'), True),  # Уникальный составной индекс
+            (('teacher_id', 'discipline_id', 'group_id', 'semester'), True),  # уникальный составной ключ
         )
 
-# Функции API с улучшенной валидацией и кодами ошибок
+# ==================== API-ФУНКЦИИ ====================
 
-# --- Функции для Teacher ---
-def create_teacher(full_name: str):
-    if not full_name:
-        return {"code": 400, "message": "full_name is required"}
+# ----- Teacher -----
+def create_teacher(full_name, position):
+    if not full_name or not position:
+        return {"code": 400, "message": "full_name and position are required"}
     try:
-        teacher = Teacher.create(full_name=full_name)
-        return {"code": 201, "data": model_to_dict(teacher)}
+        t = Teacher.create(full_name=full_name, position=position)
+        return {"code": 201, "data": model_to_dict(t)}
     except IntegrityError:
-        return {"code": 409, "message": "duplicate entry"}  # 409 Conflict
+        return {"code": 409, "message": "duplicate entry"}
 
-def get_teacher(teacher_id: int):
+def get_teacher(teacher_id):
     try:
-        teacher_id = int(teacher_id)  # Явное приведение типа
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "teacher_id must be an integer"}
+        teacher_id = int(teacher_id)
+    except:
+        return {"code": 400, "message": "teacher_id must be integer"}
     try:
-        teacher = Teacher.get_by_id(teacher_id)
-        return {"code": 200, "data": model_to_dict(teacher)}
+        t = Teacher.get_by_id(teacher_id)
+        return {"code": 200, "data": model_to_dict(t)}
     except Teacher.DoesNotExist:
         return {"code": 404, "message": "not found"}
 
-# --- Функции для Discipline ---
-def create_discipline(name: str):
-    if not name:
-        return {"code": 400, "message": "name is required"}
+# ----- Discipline -----
+def create_discipline(name, hours_total):
+    if not name or hours_total is None:
+        return {"code": 400, "message": "name and hours_total are required"}
     try:
-        discipline = Discipline.create(name=name)
-        return {"code": 201, "data": model_to_dict(discipline)}
+        hours_total = int(hours_total)
+    except:
+        return {"code": 400, "message": "hours_total must be integer"}
+    try:
+        d = Discipline.create(name=name, hours_total=hours_total)
+        return {"code": 201, "data": model_to_dict(d)}
     except IntegrityError:
         return {"code": 409, "message": "duplicate entry"}
 
-def get_discipline(discipline_id: int):
+def get_discipline(discipline_id):
     try:
         discipline_id = int(discipline_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "discipline_id must be an integer"}
+    except:
+        return {"code": 400, "message": "discipline_id must be integer"}
     try:
-        discipline = Discipline.get_by_id(discipline_id)
-        return {"code": 200, "data": model_to_dict(discipline)}
+        d = Discipline.get_by_id(discipline_id)
+        return {"code": 200, "data": model_to_dict(d)}
     except Discipline.DoesNotExist:
         return {"code": 404, "message": "not found"}
 
-# --- Функции для Group ---
-def create_group(name: str):
-    if not name:
-        return {"code": 400, "message": "name is required"}
+# ----- Group -----
+def create_group(group_number, specialty_id):
+    if not group_number or specialty_id is None:
+        return {"code": 400, "message": "group_number and specialty_id are required"}
     try:
-        group = Group.create(name=name)
-        return {"code": 201, "data": model_to_dict(group)}
+        specialty_id = int(specialty_id)
+    except:
+        return {"code": 400, "message": "specialty_id must be integer"}
+    try:
+        g = Group.create(group_number=group_number, specialty_id=specialty_id)
+        return {"code": 201, "data": model_to_dict(g)}
     except IntegrityError:
         return {"code": 409, "message": "duplicate entry"}
 
-def get_group(group_id: int):
+def get_group(group_id):
     try:
         group_id = int(group_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "group_id must be an integer"}
+    except:
+        return {"code": 400, "message": "group_id must be integer"}
     try:
-        group = Group.get_by_id(group_id)
-        return {"code": 200, "data": model_to_dict(group)}
+        g = Group.get_by_id(group_id)
+        return {"code": 200, "data": model_to_dict(g)}
     except Group.DoesNotExist:
         return {"code": 404, "message": "not found"}
 
-# --- Функции для Student ---
-def create_student(full_name: str, student_number: str, current_group_id: int):
-    if not full_name:
-        return {"code": 400, "message": "full_name is required"}
-    if not student_number:
-        return {"code": 400, "message": "student_number is required"}
+# ----- Student -----
+def create_student(student_number, status, current_group_id=None):
+    if not status:
+        return {"code": 400, "message": "status is required"}
+    if current_group_id is not None:
+        try:
+            current_group_id = int(current_group_id)
+            Group.get_by_id(current_group_id)
+        except (ValueError, Group.DoesNotExist):
+            return {"code": 404, "message": "group not found"}
     try:
-        current_group_id = int(current_group_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "current_group_id must be an integer"}
-    
-    # Проверяем, существует ли группа
-    try:
-        Group.get_by_id(current_group_id)
-    except Group.DoesNotExist:
-        return {"code": 404, "message": "group not found"}
-    
-    try:
-        student = Student.create(
-            full_name=full_name,
-            student_number=student_number,
+        s = Student.create(
+            student_number=student_number if student_number else None,
+            status=status,
             current_group_id=current_group_id
         )
-        return {"code": 201, "data": model_to_dict(student)}
+        return {"code": 201, "data": model_to_dict(s)}
     except IntegrityError:
-        return {"code": 409, "message": "duplicate entry (student_number must be unique)"}
+        return {"code": 409, "message": "duplicate student_number"}
 
-def get_student(student_id: int):
+def get_student(student_id):
     try:
         student_id = int(student_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "student_id must be an integer"}
+    except:
+        return {"code": 400, "message": "student_id must be integer"}
     try:
-        student = Student.get_by_id(student_id)
-        return {"code": 200, "data": model_to_dict(student)}
+        s = Student.get_by_id(student_id)
+        return {"code": 200, "data": model_to_dict(s)}
     except Student.DoesNotExist:
         return {"code": 404, "message": "not found"}
 
-# --- Функции для TeachingAssignment ---
-def create_teaching_assignment(teacher_id: int, discipline_id: int, group_id: int, semester: int, load_hours: Decimal):
-    # Приведение типов и валидация
+# ----- LoadAssignment -----
+def create_load_assignment(teacher_id, discipline_id, group_id, semester, load_hours):
+    # приведение типов и валидация
     try:
         teacher_id = int(teacher_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "teacher_id must be an integer"}
-    try:
         discipline_id = int(discipline_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "discipline_id must be an integer"}
-    try:
         group_id = int(group_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "group_id must be an integer"}
-    try:
         semester = int(semester)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "semester must be an integer"}
-    
-    # Проверка диапазона семестра (1-8)
-    if semester < 1 or semester > 8:
-        return {"code": 400, "message": "semester must be between 1 and 8"}
-    
-    # Проверка load_hours > 0
-    try:
         load_hours = Decimal(str(load_hours))
-        if load_hours <= 0:
-            return {"code": 400, "message": "load_hours must be greater than 0"}
-    except (ValueError, TypeError, InvalidOperation):
-        return {"code": 400, "message": "load_hours must be a valid decimal number"}
-    
-    # Проверка существования связанных записей
+    except:
+        return {"code": 400, "message": "invalid parameter type"}
+    if not (1 <= semester <= 8):
+        return {"code": 400, "message": "semester must be 1..8"}
+    if load_hours <= 0:
+        return {"code": 400, "message": "load_hours must be > 0"}
+    # проверка существования родительских объектов
     try:
         Teacher.get_by_id(teacher_id)
+        Discipline.get_by_id(discipline_id)
+        Group.get_by_id(group_id)
     except Teacher.DoesNotExist:
         return {"code": 404, "message": "teacher not found"}
-    
-    try:
-        Discipline.get_by_id(discipline_id)
     except Discipline.DoesNotExist:
         return {"code": 404, "message": "discipline not found"}
-    
-    try:
-        Group.get_by_id(group_id)
     except Group.DoesNotExist:
         return {"code": 404, "message": "group not found"}
-    
-    # Создание записи
+    # создание
     try:
-        assignment = TeachingAssignment.create(
+        la = LoadAssignment.create(
             teacher_id=teacher_id,
             discipline_id=discipline_id,
             group_id=group_id,
             semester=semester,
             load_hours=load_hours
         )
-        return {"code": 201, "data": model_to_dict(assignment)}
+        return {"code": 201, "data": model_to_dict(la)}
     except IntegrityError:
-        return {"code": 409, "message": "duplicate entry: such teaching assignment already exists"}
+        return {"code": 409, "message": "duplicate assignment"}
 
-def get_teaching_assignment(assignment_id: int):
+def get_load_assignment(assignment_id):
     try:
         assignment_id = int(assignment_id)
-    except (ValueError, TypeError):
-        return {"code": 400, "message": "assignment_id must be an integer"}
+    except:
+        return {"code": 400, "message": "assignment_id must be integer"}
     try:
-        assignment = TeachingAssignment.get_by_id(assignment_id)
-        return {"code": 200, "data": model_to_dict(assignment)}
-    except TeachingAssignment.DoesNotExist:
+        la = LoadAssignment.get_by_id(assignment_id)
+        return {"code": 200, "data": model_to_dict(la)}
+    except LoadAssignment.DoesNotExist:
         return {"code": 404, "message": "not found"}
+
+def update_load_assignment(assignment_id, teacher_id=None, discipline_id=None, group_id=None, semester=None, load_hours=None):
+    try:
+        assignment_id = int(assignment_id)
+        la = LoadAssignment.get_by_id(assignment_id)
+    except (ValueError, LoadAssignment.DoesNotExist):
+        return {"code": 404, "message": "assignment not found"}
+
+    # обновляем только переданные поля с валидацией
+    if teacher_id is not None:
+        try:
+            teacher_id = int(teacher_id)
+            Teacher.get_by_id(teacher_id)
+            la.teacher_id = teacher_id
+        except (ValueError, Teacher.DoesNotExist):
+            return {"code": 404, "message": "teacher not found"}
+    if discipline_id is not None:
+        try:
+            discipline_id = int(discipline_id)
+            Discipline.get_by_id(discipline_id)
+            la.discipline_id = discipline_id
+        except (ValueError, Discipline.DoesNotExist):
+            return {"code": 404, "message": "discipline not found"}
+    if group_id is not None:
+        try:
+            group_id = int(group_id)
+            Group.get_by_id(group_id)
+            la.group_id = group_id
+        except (ValueError, Group.DoesNotExist):
+            return {"code": 404, "message": "group not found"}
+    if semester is not None:
+        try:
+            semester = int(semester)
+            if not (1 <= semester <= 8):
+                return {"code": 400, "message": "semester must be 1..8"}
+            la.semester = semester
+        except ValueError:
+            return {"code": 400, "message": "semester must be integer"}
+    if load_hours is not None:
+        try:
+            load_hours = Decimal(str(load_hours))
+            if load_hours <= 0:
+                return {"code": 400, "message": "load_hours must be > 0"}
+            la.load_hours = load_hours
+        except:
+            return {"code": 400, "message": "invalid load_hours"}
+
+    la.save()
+    return {"code": 200, "data": model_to_dict(la)}
+
+def delete_load_assignment(assignment_id):
+    try:
+        assignment_id = int(assignment_id)
+        la = LoadAssignment.get_by_id(assignment_id)
+        la.delete_instance()
+        return {"code": 200, "message": "deleted"}   # или просто True по требованию
+    except (ValueError, LoadAssignment.DoesNotExist):
+        return {"code": 404, "message": "not found"}
+
+def list_load_assignments(teacher_id=None, discipline_id=None, group_id=None, semester=None, limit=100, offset=0):
+    # фильтры
+    query = LoadAssignment.select()
+    if teacher_id is not None:
+        try:
+            query = query.where(LoadAssignment.teacher_id == int(teacher_id))
+        except ValueError:
+            return {"code": 400, "message": "teacher_id must be integer"}
+    if discipline_id is not None:
+        try:
+            query = query.where(LoadAssignment.discipline_id == int(discipline_id))
+        except ValueError:
+            return {"code": 400, "message": "discipline_id must be integer"}
+    if group_id is not None:
+        try:
+            query = query.where(LoadAssignment.group_id == int(group_id))
+        except ValueError:
+            return {"code": 400, "message": "group_id must be integer"}
+    if semester is not None:
+        try:
+            sem = int(semester)
+            if not (1 <= sem <= 8):
+                return {"code": 400, "message": "semester must be 1..8"}
+            query = query.where(LoadAssignment.semester == sem)
+        except ValueError:
+            return {"code": 400, "message": "semester must be integer"}
+    # пагинация
+    try:
+        limit = int(limit)
+        offset = int(offset)
+    except ValueError:
+        return {"code": 400, "message": "limit and offset must be integers"}
+    assignments = list(query.limit(limit).offset(offset))
+    return {"code": 200, "data": [model_to_dict(a) for a in assignments]}
