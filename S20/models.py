@@ -28,29 +28,33 @@ class AcademicPeriod(BaseModel):
         ]
 
     def save(self, *args, **kwargs):
-        stripped_name = self.name.strip()
-        if not stripped_name:
-            raise ValueError("name must not be empty or consist only of spaces")
-        if len(stripped_name) > 100:
-            raise ValueError("name must be at most 100 significant characters (spaces at ends don't count)")
-        self.name = stripped_name
-        if self.period_type not in ('semester', 'module'):
-    raise ValueError("period_type must be either 'semester' or 'module'")
-        if not re.match(r'^\d{4}-\d{4}$', self.academic_year): raise ValueError("academic_year must be in format YYYY-YYYY")
-        if self.start_date < date(2000, 1, 1): raise ValueError("start_date must be >= 2000-01-01")
-        if self.end_date <= self.start_date: raise ValueError("end_date must be greater than start_date")
-        if self.period_type == 'semester' and self.parent_period_id != 0: raise ValueError("Semester must have parent_period_id = 0")
-        if self.period_type == 'module' and self.parent_period_id == 0: raise ValueError("Module must have parent_period_id pointing to a semester")
+    stripped_name = self.name.strip()
+    if not stripped_name:
+        raise ValueError("name must not be empty or consist only of spaces")
+    if len(stripped_name) > 100:
+        raise ValueError("name must be at most 100 significant characters (spaces at ends don't count)")
+    self.name = stripped_name
     
-        
-        # Проверка уникальности пары (name, academic_year)
-        existing = AcademicPeriod.get_or_none(
-            name=self.name,
-            academic_year=self.academic_year)
-        if existing is not None and existing.id != self.id:
-            raise ValueError(f"AcademicPeriod with name '{self.name}' and academic_year '{self.academic_year}' already exists (id={existing.id})")
-        
-        super().save(*args, **kwargs)
+    if self.period_type not in ('semester', 'module'):
+        raise ValueError("period_type must be either 'semester' or 'module'")
+    if not re.match(r'^\d{4}-\d{4}$', self.academic_year):
+        raise ValueError("academic_year must be in format YYYY-YYYY")
+    if self.start_date < date(2000, 1, 1):
+        raise ValueError("start_date must be >= 2000-01-01")
+    if self.end_date <= self.start_date:
+        raise ValueError("end_date must be greater than start_date")
+    if self.period_type == 'semester' and self.parent_period_id != 0:
+        raise ValueError("Semester must have parent_period_id = 0")
+    if self.period_type == 'module' and self.parent_period_id == 0:
+        raise ValueError("Module must have parent_period_id pointing to a semester")
+    
+    # Проверка существования родительского семестра для модуля
+    if self.period_type == 'module' and self.parent_period_id != 0:
+        parent = AcademicPeriod.get_or_none(id=self.parent_period_id)
+        if parent is None or parent.period_type != 'semester':
+            raise ValueError("parent_period_id must reference an existing semester")
+    
+    super().save(*args, **kwargs)
 
     def soft_delete(self):
     """
