@@ -1,4 +1,4 @@
-from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField, Check
+from peewee import SqliteDatabase, Model, IntegerField, FloatField, BooleanField, PrimaryKeyField, Check, IntegrityError
 
 db = SqliteDatabase('workload.db')
 
@@ -20,41 +20,66 @@ def init_db():
     db.close()
 
 def get_active_loads(teacher_id=None, period_id=None, limit=100, offset=0):
-    query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
-    if teacher_id is not None and teacher_id > 0:
-        query = query.where(CalculatedLoad.teacher_id == teacher_id)
-    if period_id is not None and period_id > 0:
-        query = query.where(CalculatedLoad.period_id == period_id)
-    if limit < 1:
-        limit = 100
-    if limit > 1000:
-        limit = 1000
+    if limit < 1 or limit > 1000:
+        raise ValueError("limit должен быть в диапазоне 1-1000")
     if offset < 0:
-        offset = 0
+        raise ValueError("offset должен быть >= 0")
+    
+    query = CalculatedLoad.select().where(CalculatedLoad.is_active == True)
+    if teacher_id is not None:
+        if teacher_id <= 0:
+            raise ValueError("teacher_id должен быть > 0")
+        query = query.where(CalculatedLoad.teacher_id == teacher_id)
+    if period_id is not None:
+        if period_id <= 0:
+            raise ValueError("period_id должен быть > 0")
+        query = query.where(CalculatedLoad.period_id == period_id)
+    
     return list(query.offset(offset).limit(limit))
 
 def get_active_load_by_id(load_id):
     return CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
 
 def create_load(teacher_id, period_id, total_hours=None):
-    return CalculatedLoad.create(
-        teacher_id=teacher_id,
-        period_id=period_id,
-        total_hours=total_hours,
-        is_active=True
-    )
+    if teacher_id <= 0:
+        raise ValueError("teacher_id должен быть > 0")
+    if period_id <= 0:
+        raise ValueError("period_id должен быть > 0")
+    if total_hours is None:
+        total_hours = 0.0
+    if total_hours < 0:
+        raise ValueError("total_hours должен быть >= 0")
+    
+    try:
+        return CalculatedLoad.create(
+            teacher_id=teacher_id,
+            period_id=period_id,
+            total_hours=total_hours,
+            is_active=True
+        )
+    except IntegrityError:
+        raise ValueError("Запись с таким teacher_id и period_id уже существует")
 
 def update_load(load_id, total_hours=None):
-    query = CalculatedLoad.update(total_hours=total_hours).where(
-        (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
-    )
-    return query.execute() > 0
+    existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+    if existing is None:
+        return None
+    
+    if total_hours is not None:
+        if total_hours < 0:
+            raise ValueError("total_hours должен быть >= 0")
+        existing.total_hours = total_hours
+        existing.save()
+    
+    return existing
 
 def delete_load(load_id):
-    query = CalculatedLoad.update(is_active=False).where(
-        (CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True)
-    )
-    return query.execute() > 0
+    existing = CalculatedLoad.get_or_none((CalculatedLoad.id == load_id) & (CalculatedLoad.is_active == True))
+    if existing is None:
+        return False
+    existing.is_active = False
+    existing.save()
+    return True
 
 if __name__ == '__main__':
     init_db()
