@@ -69,3 +69,4 @@ def get_db_init_handler():
         init_db()
         return {"message": "Database initialized"}
     return handler
+    
