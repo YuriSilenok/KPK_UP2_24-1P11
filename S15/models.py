@@ -102,15 +102,15 @@ def add_load_assignment(teacher_id, discipline_id, group_id, semester, load_hour
     except IntegrityError as e:
         error_msg = str(e)
         if "UNIQUE" in error_msg:
-            return ({"error": "конфликт", "message": "нарушение уникальности"}, 409)
+            return ({"error": "Конфликт", "message": "нарушение уникальности"}, 409)
         else:
-            # Определяем, какой внешний ключ не найден
+            # Ошибка внешнего ключа: возвращаем 400
             if "teacher_id" in error_msg:
-                return ({"error": "Внешний ключ", "message": "teacher_id не найден"}, 500)
+                return ({"error": "Неверный параметр", "message": "teacher_id не найден"}, 400)
             elif "discipline_id" in error_msg:
-                return ({"error": "Внешний ключ", "message": "discipline_id не найден"}, 500)
+                return ({"error": "Неверный параметр", "message": "discipline_id не найден"}, 400)
             elif "group_id" in error_msg:
-                return ({"error": "Внешний ключ", "message": "group_id не найден"}, 500)
+                return ({"error": "Неверный параметр", "message": "group_id не найден"}, 400)
             return ({"error": "Ошибка базы данных", "message": "Произошла ошибка при создании записи"}, 500)
     except OperationalError as e:
         return ({"error": "Ошибка базы данных", "message": str(e)}, 500)
@@ -120,20 +120,29 @@ def add_load_assignment(teacher_id, discipline_id, group_id, semester, load_hour
 def update_load_assignment(id, teacher_id=None, discipline_id=None, group_id=None, semester=None, load_hours=None):
     if teacher_id is None and discipline_id is None and group_id is None and semester is None and load_hours is None:
         return ({"error": "Неверный параметр", "message": "Необходимо указать хотя бы одно поле для обновления"}, 400)
+    
+    # Проверка существования записи
     try:
         assignment = LoadAssignment.get(LoadAssignment.id == id, LoadAssignment.is_active == True)
     except DoesNotExist:
-        return ({"error": "Не найдено", "message": "Запись не найдена или неактивна"}, 404)
+        return ({"error": "Не найдено", "message": "активная запись с указанным id не найдена"}, 404)
 
+    # Валидация и проверка существования внешних ключей
     if teacher_id is not None:
         if not validate_positive_id(teacher_id):
             return ({"error": "Неверный параметр", "message": "teacher_id должен быть положительным числом"}, 400)
+        if not Teacher.select().where(Teacher.id == teacher_id).exists():
+            return ({"error": "Неверный параметр", "message": "teacher_id не найден"}, 400)
     if discipline_id is not None:
         if not validate_positive_id(discipline_id):
             return ({"error": "Неверный параметр", "message": "discipline_id должен быть положительным числом"}, 400)
+        if not Discipline.select().where(Discipline.id == discipline_id).exists():
+            return ({"error": "Неверный параметр", "message": "discipline_id не найден"}, 400)
     if group_id is not None:
         if not validate_positive_id(group_id):
             return ({"error": "Неверный параметр", "message": "group_id должен быть положительным числом"}, 400)
+        if not Group.select().where(Group.id == group_id).exists():
+            return ({"error": "Неверный параметр", "message": "group_id не найден"}, 400)
     if semester is not None and not validate_semester(semester):
         return ({"error": "Ошибка валидации", "message": "semester должен быть от 1 до 8"}, 422)
     if load_hours is not None and not validate_load_hours(load_hours):
@@ -154,7 +163,7 @@ def update_load_assignment(id, teacher_id=None, discipline_id=None, group_id=Non
         (LoadAssignment.is_active == True)
     ).exists()
     if duplicate:
-        return ({"error": "конфликт", "message": "нарушение уникальности"}, 409)
+        return ({"error": "Конфликт", "message": "нарушение уникальности"}, 409)
 
     if teacher_id is not None:
         assignment.teacher_id = teacher_id
@@ -183,9 +192,9 @@ def delete_load_assignment(id):
         assignment = LoadAssignment.get(LoadAssignment.id == id, LoadAssignment.is_active == True)
         assignment.is_active = False
         assignment.save()
-        return ({"result": True}, 200)
+        return True
     except DoesNotExist:
-        return ({"error": "Не найдено", "message": "Запись не найдена или уже неактивна"}, 404)
+        return False
 
 def get_load_assignment(id):
     try:
@@ -201,7 +210,7 @@ def get_load_assignment(id):
         }
         return (data, 200)
     except DoesNotExist:
-        return ({"error": "Не найдено", "message": "Запись не найдена"}, 404)
+        return ({"error": "Не найдено", "message": "активная запись с указанным id не найдена"}, 404)
 
 def get_load_assignments(teacher_id=None, discipline_id=None, group_id=None, semester=None, limit=100, offset=0):
     # Валидация фильтров
@@ -212,8 +221,8 @@ def get_load_assignments(teacher_id=None, discipline_id=None, group_id=None, sem
     if group_id is not None and not validate_positive_id(group_id):
         return ({"error": "Неверный параметр", "message": "group_id должен быть положительным числом"}, 400)
     if semester is not None and not validate_semester(semester):
-        # Ошибка валидации - 422
-        return ({"error": "Ошибка валидации", "message": "semester должен быть от 1 до 8"}, 422)
+        # Ошибка валидации - согласно требованиям для GET списка все ошибки - 400
+        return ({"error": "Неверный параметр", "message": "semester должен быть от 1 до 8"}, 400)
     if limit <= 0:
         return ({"error": "Неверный параметр", "message": "limit должен быть больше 0"}, 400)
     if offset < 0:
