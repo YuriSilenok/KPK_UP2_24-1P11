@@ -10,8 +10,6 @@ class BaseModel(Model):
 
 
 class ResourceCategory(BaseModel):
-    """Модель категории ресурсов"""
-
     id = AutoField(primary_key=True)
     name = CharField(
         max_length=100, unique=True, constraints=[Check("length(name) >= 1")]
@@ -23,8 +21,6 @@ class ResourceCategory(BaseModel):
 
 
 class Person(BaseModel):
-    """Модель пользователя/персоны"""
-
     id = AutoField(primary_key=True)
     login = CharField(max_length=50, unique=True)
     email = CharField(max_length=100, unique=True)
@@ -34,10 +30,6 @@ class Person(BaseModel):
 
 
 class Asset(BaseModel):
-    """
-    Модель ресурса
-    """
-
     id = AutoField(primary_key=True)
 
     name = CharField(max_length=100, constraints=[Check("length(name) >= 1")])
@@ -74,18 +66,25 @@ class Asset(BaseModel):
 
     class Meta:
         table_name = "assets"
-        indexes = (((("name", "category_id")), True),)
+        indexes = ((("name", "category_id"), True),)
 
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now()
         return super().save(*args, **kwargs)
 
     def to_dict(self):
+        category_id_value = None
+        if self.category_id:
+            try:
+                category_id_value = self.category_id.id
+            except:
+                category_id_value = None
+        
         return {
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "category_id": self.category_id.id if self.category_id else None,
+            "category_id": category_id_value,
             "total_quantity": self.total_quantity,
             "available_quantity": self.available_quantity,
             "unit": self.unit,
@@ -96,6 +95,12 @@ class Asset(BaseModel):
 
     @classmethod
     def disable(cls, asset_id):
+        asset = cls.get_or_none(cls.id == asset_id)
+        if not asset:
+            return False
+        if not asset.is_active:
+            return False
+        
         affected = (
             cls.update(is_active=False)
             .where((cls.id == asset_id) & (cls.is_active == True))
@@ -109,8 +114,6 @@ class Asset(BaseModel):
 
 
 class Booking(BaseModel):
-    """Модель бронирования ресурса (транзитивная таблица)"""
-
     id = AutoField(primary_key=True)
     asset = ForeignKeyField(Asset, backref="bookings", on_delete="CASCADE")
     booked_by = ForeignKeyField(Person, backref="bookings", on_delete="CASCADE")
@@ -126,9 +129,13 @@ class Booking(BaseModel):
     class Meta:
         table_name = "bookings"
 
+    def save(self, *args, **kwargs):
+        if self.start_dt and self.end_dt and self.start_dt >= self.end_dt:
+            raise ValueError("start_dt must be less than end_dt")
+        return super().save(*args, **kwargs)
+
 
 def initialize_database():
-    """Инициализация БД с тестовыми данными"""
     database.connect()
     database.create_tables([ResourceCategory, Asset, Person, Booking], safe=True)
 
@@ -151,14 +158,14 @@ def initialize_database():
         Asset.create(
             name="мяч",
             description="Wilson Evolution",
-            category_id=sport_category,
+            category_id=sport_category.id,
             total_quantity=100,
             unit="шт",
         )
 
         Asset.create(
             name="мат",
-            category_id=sport_category,
+            category_id=sport_category.id,
             total_quantity=50,
             unit="шт",
             status="maintenance",
@@ -166,14 +173,11 @@ def initialize_database():
 
 
 def init_db():
-    """Функция инициализации БД"""
     initialize_database()
     print("База данных инициализирована в соответствии со спецификацией doc.md")
 
 
-# Точка входа
 def main():
-    """Точка входа для инициализации БД"""
     init_db()
 
 
