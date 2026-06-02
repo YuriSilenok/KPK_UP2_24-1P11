@@ -170,6 +170,6 @@
 ![ER-диаграмма](erd.png)
 
 **Ключевые связи:**
-- `LoadAssignment.teacher_id` → внешняя сущность Teacher (N:1)
-- `LoadAssignment.discipline_id` → внешняя сущность Discipline (N:1)
-- `LoadAssignment.group_id` → внешняя сущность Group (N:1)
+- `LoadAssignment.teacher_id` → `Teacher.id` (N:1)
+- `LoadAssignment.discipline_id` → `Discipline.id` (N:1)
+- `LoadAssignment.group_id` → `Group.id` (N:1)
