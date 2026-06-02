@@ -9,7 +9,7 @@ class BaseModel(Model):
 class HolidayType(BaseModel):
     """Справочник типов: holiday (праздник) или vacation (каникулы)"""
     id = PrimaryKeyField()
-    name = CharField(max_length=50, unique=True, null=False)
+    name = CharField(max_length=50, null=False)
     code = CharField(
         max_length=8,
         unique=True,
@@ -24,7 +24,7 @@ class HolidayType(BaseModel):
 class Holiday(BaseModel):
     """Праздники"""
     id = PrimaryKeyField()
-    name = CharField(max_length=100, unique=True, null=False)
+    name = CharField(max_length=100, null=False)
     date = DateField(null=False, index=True)
     type = ForeignKeyField(HolidayType, backref='holidays', null=False, index=True)
     is_active = BooleanField(default=True, null=False, index=True)
