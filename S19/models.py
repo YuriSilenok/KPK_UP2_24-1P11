@@ -1,16 +1,16 @@
 from datetime import datetime
 from peewee import *
 
-database = SqliteDatabase('resource_pool.db')
+db = SqliteDatabase('resource_pool.db')
 
 class BaseModel(Model):
     class Meta:
-        database = database
+        database = db
 
 class ResourceCategory(BaseModel):
     id = AutoField(primary_key=True)
     title = CharField(max_length=100, unique=True, constraints=[Check("length(title) >= 1")])
-    details = CharField(max_length=500, null=True)
+    details = CharField(max_length=500, null=False)
 
     class Meta:
         table_name = 'resource_categories'
@@ -18,8 +18,8 @@ class ResourceCategory(BaseModel):
 class Resource(BaseModel):
     id = AutoField(primary_key=True)
     name = CharField(max_length=100, constraints=[Check("length(name) >= 1")])
-    description = CharField(max_length=500, null=True)
-    category_id = ForeignKeyField(ResourceCategory, backref='resources', on_delete='RESTRICT', column_name='category_id')
+    description = CharField(max_length=500, null=False)
+    category_id = ForeignKeyField(ResourceCategory, backref='resources', on_delete='RESTRICT')
     total_quantity = IntegerField(constraints=[Check('total_quantity >= 1')])
     available_quantity = IntegerField(constraints=[Check('available_quantity >= 0')])
     unit = CharField(max_length=10, choices=['шт', 'компл', 'экз'], default='шт')
@@ -47,9 +47,9 @@ class Resource(BaseModel):
         ).execute()
         return affected > 0
 
-def initialize_database():
-    database.connect()
-    database.create_tables([ResourceCategory, Resource], safe=True)
+def init_db():
+    db.connect()
+    db.create_tables([ResourceCategory, Resource], safe=True)
 
     if not ResourceCategory.select().exists():
         ResourceCategory.create(title='Спортивный инвентарь', details='Мячи, маты и т.д.')
@@ -73,9 +73,6 @@ def initialize_database():
             status='maintenance'
         )
 
-def pusk():
-    initialize_database()
-    print("База данных инициализирована.")
-
 if __name__ == '__main__':
-    pusk()
+    init_db()
+    print("База данных инициализирована.")
