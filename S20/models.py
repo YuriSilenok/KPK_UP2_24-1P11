@@ -16,7 +16,7 @@ class AcademicPeriod(BaseModel):
     period_type = CharField(max_length=10, null=False)  # semester, module
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    parent_period_id = IntegerField(null=False, default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
+    parent_period_id = IntegerField(null=True, default=None)
     is_active = BooleanField(default=True)
 
     class Meta:
