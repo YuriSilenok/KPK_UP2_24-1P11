@@ -34,8 +34,9 @@ class AcademicPeriod(BaseModel):
         if len(stripped_name) > 100:
             raise ValueError("name must be at most 100 significant characters (spaces at ends don't count)")
         self.name = stripped_name
-        if self.period_type not in ('semester', 'module'): raise ValueError("period_type must be either 'semester' or 'module'")
-       if not re.match(r'^\d{4}-\d{4}$', self.academic_year): raise ValueError("academic_year must be in format YYYY-YYYY")
+        if self.period_type not in ('semester', 'module'):
+    raise ValueError("period_type must be either 'semester' or 'module'")
+        if not re.match(r'^\d{4}-\d{4}$', self.academic_year): raise ValueError("academic_year must be in format YYYY-YYYY")
         if self.start_date < date(2000, 1, 1): raise ValueError("start_date must be >= 2000-01-01")
         if self.end_date <= self.start_date: raise ValueError("end_date must be greater than start_date")
         if self.period_type == 'semester' and self.parent_period_id != 0: raise ValueError("Semester must have parent_period_id = 0")
