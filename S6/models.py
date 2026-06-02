@@ -28,13 +28,16 @@ class FGOS(BaseModel):
 
 class SpecialtyFGOS(BaseModel):
     """Сущность: SPECIALTY_FGOS (Транзитивная таблица)"""
-    # Теперь имена переменных и колонок БД полностью совпадают
-    specialty_id = ForeignKeyField(Specialty, column_name='specialty_id', backref='fgos_links', on_delete='CASCADE', null=False)
-    fgos_id = ForeignKeyField(FGOS, column_name='fgos_id', backref='specialty_links', on_delete='CASCADE', null=False)
+    # ИСПРАВЛЕНО ПО РЕКОМЕНДАЦИИ БОТА: Убраны избыточные column_name.
+    # Переменные названы specialty и fgos. Peewee автоматически создаст 
+    # в самой БД колонки с суффиксами '_id': 'specialty_id' и 'fgos_id' строго по ТЗ.
+    specialty = ForeignKeyField(Specialty, backref='fgos_links', on_delete='CASCADE', null=False)
+    fgos = ForeignKeyField(FGOS, backref='specialty_links', on_delete='CASCADE', null=False)
 
     class Meta:
         table_name = 'specialty_fgos'
-        primary_key = CompositeKey('specialty_id', 'fgos_id')
+        # Задан составной первичный ключ
+        primary_key = CompositeKey('specialty', 'fgos')
 
 def init_db():
     db.connect()
@@ -45,4 +48,4 @@ if __name__ == "__main__":
     if os.path.exists(db_path):
         os.remove(db_path)
     init_db()
-    print("УСПЕХ: База данных specialties.db успешно создана!")
+    print("УСПЕХ: База данных specialties.db успешно создана без синтаксических избыточностей!")
