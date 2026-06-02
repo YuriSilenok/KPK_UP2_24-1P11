@@ -1,4 +1,7 @@
-import datetime as dt  # ИСПРАВЛЕНО: переименовали, чтобы избежать конфликта с модулем Peewee
+Вот полностью исправленный и готовый к использованию файл `models.py`. В код внесены все необходимые правки из замечаний: добавлена проверка «не в будущем» для отпусков и больничных, явная валидация внешних ключей, унифицирована логика дат и исправлены опечатки. Файл заканчивается корректно, без обрывов.
+
+```python
+import datetime as dt
 import logging
 from peewee import *
 
@@ -8,9 +11,7 @@ db = SqliteDatabase('app.db')
 
 class BaseModel(Model):
     """Базовая модель с поддержкой мягкого удаления и временных меток."""
-
     is_active = BooleanField(default=True)
-    # ИСПРАВЛЕНО: dt.datetime.now без скобок передает функцию
     created_at = DateTimeField(default=dt.datetime.now)
     updated_at = DateTimeField(default=dt.datetime.now)
 
@@ -18,7 +19,6 @@ class BaseModel(Model):
         database = db
 
     def save(self, *args, **kwargs):
-        # ИСПРАВЛЕНО: используем dt.datetime.now() со скобками для обновления времени
         self.updated_at = dt.datetime.now()
         return super().save(*args, **kwargs)
 
@@ -31,7 +31,6 @@ class BaseModel(Model):
 
 class Profile(BaseModel):
     """Профиль сотрудника."""
-
     full_name = CharField(max_length=255)
 
     class Meta:
@@ -40,7 +39,6 @@ class Profile(BaseModel):
 
 class Position(BaseModel):
     """Справочник должностей."""
-
     title = CharField(max_length=255)
     code = CharField(max_length=50)
     department = CharField(max_length=100)
@@ -50,35 +48,23 @@ class Position(BaseModel):
 
     def save(self, *args, **kwargs):
         if self.code:
-            existing = (
-                Position.select()
-                .where(
-                    (Position.code == self.code)
-                    & (Position.is_active == True)
-                    & (Position.id != self.id)
-                )
-                .exists()
-            )
+            existing = Position.select().where(
+                (Position.code == self.code) &
+                (Position.is_active == True) &
+                (Position.id != self.id)
+            ).exists()
             if existing:
-                raise ValueError(
-                    "Код должности уже существует среди активных записей."
-                )
+                raise ValueError("Код должности уже существует среди активных записей.")
         super().save(*args, **kwargs)
 
     def deactivate(self):
-        has_active = (
-            EmployeePosition.select()
-            .where(
-                (EmployeePosition.position == self)
-                & (EmployeePosition.is_active == True)
-            )
-            .exists()
-        )
+        has_active = EmployeePosition.select().where(
+            (EmployeePosition.position == self) &
+            (EmployeePosition.is_active == True)
+        ).exists()
 
         if has_active:
-            logger.warning(
-                f"Невозможно удалить должность {self.id}: есть активные ставки"
-            )
+            logger.warning(f"Невозможно удалить должность {self.id}: есть активные ставки")
             return False
 
         self.is_active = False
@@ -88,13 +74,10 @@ class Position(BaseModel):
 
 class EmployeePosition(BaseModel):
     """Ставка сотрудника."""
-
     profile = ForeignKeyField(Profile, backref="employee_positions")
     position = ForeignKeyField(Position, backref="employee_positions")
     start_date = DateField()
     end_date = DateField(null=True)
-    # Для тройки оставил max_digits=3. Согласно вашей валидации rate от 0.1 до 2.0,
-    # поэтому дробных знаков (2) и одной цифры до запятой (всего 3) как раз хватает.
     rate = DecimalField(max_digits=3, decimal_places=2)
     is_primary = BooleanField(default=False)
 
@@ -102,29 +85,27 @@ class EmployeePosition(BaseModel):
         table_name = "employee_positions"
 
     def save(self, *args, **kwargs):
-        if not self.profile or not self.position:
-            raise ValueError("Поля profile и position являются обязательными.")
+        # Явная проверка существования внешних ключей
+        if not self.profile or not Profile.get_or_none(Profile.id == self.profile_id):
+            raise ValueError("Профиль сотрудника не существует.")
+        if not self.position or not Position.get_or_none(Position.id == self.position_id):
+            raise ValueError("Должность не существует.")
 
-        # ИСПРАВЛЕНО: используем dt.date.today() вместо старого импорта
         if self.start_date > dt.date.today():
             raise ValueError("Дата начала ставки не может быть в будущем.")
 
         if not (0.1 <= self.rate <= 2.0):
-            raise ValueError(
-                "Коэффициент ставки должен быть в диапазоне [0.1; 2.0]."
-            )
+            raise ValueError("Коэффициент ставки должен быть в диапазоне [0.1; 2.0].")
 
         if self.end_date and self.end_date < self.start_date:
-            raise ValueError(
-                "Дата окончания не может быть раньше даты начала."
-            )
+            raise ValueError("Дата окончания не может быть раньше даты начала.")
 
         if self.is_primary:
             EmployeePosition.update(is_primary=False).where(
-                (EmployeePosition.profile == self.profile)
-                & (EmployeePosition.id != self.id)
-                & (EmployeePosition.is_active == True)
-                & (EmployeePosition.is_primary == True)
+                (EmployeePosition.profile == self.profile) &
+                (EmployeePosition.id != self.id) &
+                (EmployeePosition.is_active == True) &
+                (EmployeePosition.is_primary == True)
             ).execute()
 
         super().save(*args, **kwargs)
@@ -136,25 +117,17 @@ class EmployeePosition(BaseModel):
         if not pos:
             raise ValueError("Указанная должность не существует или неактивна.")
 
-        active_leaves = (
-            Leave.select()
-            .where(
-                (Leave.employee_position == self)
-                & (Leave.status == "ACTIVE")
-                & (Leave.is_active == True)
-            )
-            .exists()
-        )
+        active_leaves = Leave.select().where(
+            (Leave.employee_position == self) &
+            (Leave.status == "ACTIVE") &
+            (Leave.is_active == True)
+        ).exists()
 
-        active_sick = (
-            SickLeave.select()
-            .where(
-                (SickLeave.employee_position == self)
-                & (SickLeave.status == "ACTIVE")
-                & (SickLeave.is_active == True)
-            )
-            .exists()
-        )
+        active_sick = SickLeave.select().where(
+            (SickLeave.employee_position == self) &
+            (SickLeave.status == "ACTIVE") &
+            (SickLeave.is_active == True)
+        ).exists()
 
         if active_leaves or active_sick:
             raise ValueError(
@@ -172,7 +145,6 @@ class EmployeePosition(BaseModel):
 
 class Leave(BaseModel):
     """Отпуск сотрудника."""
-
     employee_position = ForeignKeyField(EmployeePosition, backref="leaves")
     start_date = DateField()
     end_date = DateField()
@@ -183,28 +155,20 @@ class Leave(BaseModel):
         table_name = "leaves"
 
     def _check_overlap(self):
-        overlap_leave = (
-            Leave.select()
-            .where(
-                (Leave.employee_position == self.employee_position)
-                & (Leave.is_active == True)
-                & (Leave.id != self.id)
-                & (Leave.start_date <= self.end_date)
-                & (Leave.end_date >= self.start_date)
-            )
-            .exists()
-        )
+        overlap_leave = Leave.select().where(
+            (Leave.employee_position == self.employee_position) &
+            (Leave.is_active == True) &
+            (Leave.id != self.id) &
+            (Leave.start_date <= self.end_date) &
+            (Leave.end_date >= self.start_date)
+        ).exists()
 
-        overlap_sick = (
-            SickLeave.select()
-            .where(
-                (SickLeave.employee_position == self.employee_position)
-                & (SickLeave.is_active == True)
-                & (SickLeave.start_date <= self.end_date)
-                & (SickLeave.end_date >= self.start_date)
-            )
-            .exists()
-        )
+        overlap_sick = SickLeave.select().where(
+            (SickLeave.employee_position == self.employee_position) &
+            (SickLeave.is_active == True) &
+            (SickLeave.start_date <= self.end_date) &
+            (SickLeave.end_date >= self.start_date)
+        ).exists()
 
         return overlap_leave or overlap_sick
 
@@ -212,22 +176,19 @@ class Leave(BaseModel):
         if not self.employee_position:
             raise ValueError("Поле employee_position является обязательным.")
 
+        if self.start_date > dt.date.today():
+            raise ValueError("Дата начала отпуска не может быть в будущем.")
+
         if self.end_date < self.start_date:
-            raise ValueError(
-                "Дата окончания не может быть раньше даты начала."
-            )
+            raise ValueError("Дата окончания не может быть раньше даты начала.")
 
         valid_types = ["ANNUAL", "UNPAID", "STUDY"]
         valid_statuses = ["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]
 
         if self.leave_type not in valid_types:
-            raise ValueError(
-                f"Недопустимый тип отпуска. Разрешены: {valid_types}"
-            )
+            raise ValueError(f"Недопустимый тип отпуска. Разрешены: {valid_types}")
         if self.status not in valid_statuses:
-            raise ValueError(
-                f"Недопустимый статус. Разрешены: {valid_statuses}"
-            )
+            raise ValueError(f"Недопустимый статус. Разрешены: {valid_statuses}")
 
         if self._check_overlap():
             raise ValueError(
@@ -244,7 +205,6 @@ class Leave(BaseModel):
 
 class SickLeave(BaseModel):
     """Больничный лист."""
-
     employee_position = ForeignKeyField(EmployeePosition, backref="sick_leaves")
     start_date = DateField()
     end_date = DateField()
@@ -255,28 +215,20 @@ class SickLeave(BaseModel):
         table_name = "sick_leaves"
 
     def _check_overlap(self):
-        overlap_sick = (
-            SickLeave.select()
-            .where(
-                (SickLeave.employee_position == self.employee_position)
-                & (SickLeave.is_active == True)
-                & (SickLeave.id != self.id)
-                & (SickLeave.start_date <= self.end_date)
-                & (SickLeave.end_date >= self.start_date)
-            )
-            .exists()
-        )
+        overlap_sick = SickLeave.select().where(
+            (SickLeave.employee_position == self.employee_position) &
+            (SickLeave.is_active == True) &
+            (SickLeave.id != self.id) &
+            (SickLeave.start_date <= self.end_date) &
+            (SickLeave.end_date >= self.start_date)
+        ).exists()
 
-        overlap_leave = (
-            Leave.select()
-            .where(
-                (Leave.employee_position == self.employee_position)
-                & (Leave.is_active == True)
-                & (Leave.start_date <= self.end_date)
-                & (Leave.end_date >= self.start_date)
-            )
-            .exists()
-        )
+        overlap_leave = Leave.select().where(
+            (Leave.employee_position == self.employee_position) &
+            (Leave.is_active == True) &
+            (Leave.start_date <= self.end_date) &
+            (Leave.end_date >= self.start_date)
+        ).exists()
 
         return overlap_sick or overlap_leave
 
@@ -284,38 +236,36 @@ class SickLeave(BaseModel):
         if not self.employee_position:
             raise ValueError("Поле employee_position является обязательным.")
 
+        if self.start_date > dt.date.today():
+            raise ValueError("Дата начала больничного не может быть в будущем.")
+
         if self.end_date < self.start_date:
-            raise ValueError(
-                "Дата окончания не может быть раньше даты начала."
-            )
+            raise ValueError("Дата окончания не может быть раньше даты начала.")
 
         valid_statuses = ["OPEN", "CLOSED", "EXTENDED"]
         if self.status not in valid_statuses:
-            raise ValueError(
-                f"Недопустимый статус. Разрешены: {valid_statuses}"
-            )
+            raise ValueError(f"Недопустимый статус. Разрешены: {valid_statuses}")
 
         if self.certificate_number:
-            existing = (
-                SickLeave.select()
-                .where(
-                    (SickLeave.certificate_number == self.certificate_number)
-                    & (SickLeave.is_active == True)
-                    & (SickLeave.id != self.id)
-                )
-                .exists()
-            )
+            existing = SickLeave.select().where(
+                (SickLeave.certificate_number == self.certificate_number) &
+                (SickLeave.is_active == True) &
+                (SickLeave.id != self.id)
+            ).exists()
             if existing:
                 raise ValueError(
                     "Номер листка нетрудоспособности уже существует среди активных записей."
                 )
 
-        # ИСПРАВЛЕНО: дописали оборванную строку вызова исключения
         if self._check_overlap():
             raise ValueError(
-                "Период больничного пересекается с существующими активными отпусками или больничными."
+                "Период больничного пересекается с существующими активными больничными или отпусками."
             )
 
         super().save(*args, **kwargs)
 
     def deactivate(self):
+        self.is_active = False
+        self.save()
+        return True
+```
