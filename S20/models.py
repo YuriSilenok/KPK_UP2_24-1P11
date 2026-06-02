@@ -68,8 +68,9 @@ class AcademicPeriod(BaseModel):
     return False
 
    @classmethod
-def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None):
-    query = cls.select()
+def name_contains(cls, term=None, academic_year=None, period_type=None, parent_period_id=None, page=1, per_page=20):
+    query = cls.select().where(cls.is_active == True)  # Только активные
+    
     if term:
         query = query.where(cls.name.contains(term))
     if academic_year:
@@ -78,6 +79,17 @@ def name_contains(cls, term=None, academic_year=None, period_type=None, parent_p
         query = query.where(cls.period_type == period_type)
     if parent_period_id is not None:
         query = query.where(cls.parent_period_id == parent_period_id)
+    
+    # Пагинация
+    if page < 1:
+        page = 1
+    if per_page < 1:
+        per_page = 20
+    if per_page > 100:
+        per_page = 100
+    
+    offset = (page - 1) * per_page
+    query = query.limit(per_page).offset(offset)
     
     # Преобразуем QuerySet в список словарей с нужными полями
     result = []
@@ -93,7 +105,6 @@ def name_contains(cls, term=None, academic_year=None, period_type=None, parent_p
             "is_active": period.is_active
         })
     return result
-
     @classmethod
     def get_by_id(cls, period_id):
         """
