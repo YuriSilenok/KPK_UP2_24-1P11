@@ -112,7 +112,9 @@ class AcademicPeriod(BaseModel):
         period_type=None,
         parent_period_id=None
     ):
-        query = cls.select()
+        query = cls.select().where(
+            cls.is_active == True
+        )
 
         if name_contains:
             query = query.where(
