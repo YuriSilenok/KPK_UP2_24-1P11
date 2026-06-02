@@ -11,6 +11,32 @@ LEAVE_STATUSES = ("PLANNED", "ACTIVE", "COMPLETED", "CANCELLED")
 SICK_LEAVE_STATUSES = ("OPEN", "CLOSED", "EXTENDED")
 
 
+class ApiError(Exception):
+    """Базовое исключение API с кодом ответа."""
+    def __init__(self, message: str, status_code: int = 500):
+        self.message = message
+        self.status_code = status_code
+        super().__init__(self.message)
+
+
+class NotFoundError(ApiError):
+    """Запись не найдена (404)."""
+    def __init__(self, message: str = "Сущность не найдена"):
+        super().__init__(message, status_code=404)
+
+
+class ValidationError(ApiError):
+    """Ошибка валидации входных данных (400)."""
+    def __init__(self, message: str = "Ошибка валидации входных данных"):
+        super().__init__(message, status_code=400)
+
+
+class ConflictError(ApiError):
+    """Конфликт бизнес-логики (409)."""
+    def __init__(self, message: str = "Конфликт бизнес-логики"):
+        super().__init__(message, status_code=409)
+
+
 class BaseModel(Model):
     """Базовая модель с поддержкой мягкого удаления и временных меток."""
     is_active = BooleanField(default=True)
@@ -48,14 +74,21 @@ class Position(BaseModel):
     class Meta:
         table_name = "positions"
 
+    @classmethod
+    def get_active(cls, pk):
+        obj = cls.get_or_none((cls.id == pk) & (cls.is_active == True))
+        if not obj:
+            raise NotFoundError("Должность не найдена или неактивна.")
+        return obj
+
     def save(self, *args, **kwargs):
         if len(self.title) > 255:
-            raise ValueError("Название должности не может превышать 255 символов.")
+            raise ValidationError("Название должности не может превышать 255 символов.")
         if len(self.code) > 50:
-            raise ValueError("Код должности не может превышать 50 символов.")
+            raise ValidationError("Код должности не может превышать 50 символов.")
         if len(self.department) > 100:
-            raise ValueError("Подразделение не может превышать 100 символов.")
-            
+            raise ValidationError("Подразделение не может превышать 100 символов.")
+
         if self.code:
             existing = Position.select().where(
                 (Position.code == self.code) &
@@ -63,7 +96,7 @@ class Position(BaseModel):
                 (Position.id != self.id)
             ).exists()
             if existing:
-                raise ValueError("Код должности уже существует среди активных записей.")
+                raise ConflictError("Код должности уже существует среди активных записей.")
         super().save(*args, **kwargs)
 
     def deactivate(self):
@@ -74,7 +107,7 @@ class Position(BaseModel):
 
         if has_active:
             logger.warning(f"Невозможно удалить должность {self.id}: есть активные ставки")
-            return False
+            raise ConflictError("Невозможно удалить должность: есть активные связанные ставки сотрудников.")
 
         self.is_active = False
         self.save()
@@ -93,23 +126,28 @@ class EmployeePosition(BaseModel):
     class Meta:
         table_name = "employee_positions"
 
+    @classmethod
+    def get_active(cls, pk):
+        obj = cls.get_or_none((cls.id == pk) & (cls.is_active == True))
+        if not obj:
+            raise NotFoundError("Ставка сотрудника не найдена или неактивна.")
+        return obj
+
     def save(self, *args, **kwargs):
-        # Явная проверка существования внешних ключей
         if not self.profile or not Profile.get_or_none(Profile.id == self.profile_id):
-            raise ValueError("Профиль сотрудника не существует.")
+            raise ValidationError("Профиль сотрудника не существует.")
         if not self.position or not Position.get_or_none(Position.id == self.position_id):
-            raise ValueError("Должность не существует.")
+            raise ValidationError("Должность не существует.")
 
         if self.start_date > dt.date.today():
-            raise ValueError("Дата начала ставки не может быть в будущем.")
+            raise ValidationError("Дата начала ставки не может быть в будущем.")
 
         if not (0.1 <= self.rate <= 2.0):
-            raise ValueError("Коэффициент ставки должен быть в диапазоне [0.1; 2.0].")
+            raise ValidationError("Коэффициент ставки должен быть в диапазоне [0.1; 2.0].")
 
         if self.end_date and self.end_date < self.start_date:
-            raise ValueError("Дата окончания не может быть раньше даты начала.")
+            raise ValidationError("Дата окончания не может быть раньше даты начала.")
 
-        # Транзакция для гарантии атомарности переключения основной ставки
         with db.atomic():
             if self.is_primary:
                 EmployeePosition.update(is_primary=False).where(
@@ -123,12 +161,12 @@ class EmployeePosition(BaseModel):
     def update_position(self, new_position_id):
         if self.position_id == new_position_id:
             return
-            
+
         pos = Position.get_or_none(
             (Position.id == new_position_id) & (Position.is_active == True)
         )
         if not pos:
-            raise ValueError("Указанная должность не существует или неактивна.")
+            raise NotFoundError("Указанная должность не существует или неактивна.")
 
         active_leaves = Leave.select().where(
             (Leave.employee_position == self) &
@@ -143,7 +181,7 @@ class EmployeePosition(BaseModel):
         ).exists()
 
         if active_leaves or active_sick:
-            raise ValueError(
+            raise ConflictError(
                 "Невозможно изменить должность: у сотрудника есть активные отпуска или больничные листы."
             )
 
@@ -167,6 +205,13 @@ class Leave(BaseModel):
     class Meta:
         table_name = "leaves"
 
+    @classmethod
+    def get_active(cls, pk):
+        obj = cls.get_or_none((cls.id == pk) & (cls.is_active == True))
+        if not obj:
+            raise NotFoundError("Отпуск не найден или неактивен.")
+        return obj
+
     def _check_overlap(self):
         overlap_leave = Leave.select().where(
             (Leave.employee_position == self.employee_position) &
@@ -187,27 +232,31 @@ class Leave(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.employee_position or not EmployeePosition.get_or_none(EmployeePosition.id == self.employee_position_id):
-            raise ValueError("Ставка сотрудника не существует.")
+            raise ValidationError("Ставка сотрудника не существует.")
 
         if self.start_date > dt.date.today():
-            raise ValueError("Дата начала отпуска не может быть в будущем.")
+            raise ValidationError("Дата начала отпуска не может быть в будущем.")
 
         if self.end_date < self.start_date:
-            raise ValueError("Дата окончания не может быть раньше даты начала.")
+            raise ValidationError("Дата окончания не может быть раньше даты начала.")
 
         if self.leave_type not in LEAVE_TYPES:
-            raise ValueError(f"Недопустимый тип отпуска. Разрешены: {LEAVE_TYPES}")
+            raise ValidationError(f"Недопустимый тип отпуска. Разрешены: {LEAVE_TYPES}")
         if self.status not in LEAVE_STATUSES:
-            raise ValueError(f"Недопустимый статус. Разрешены: {LEAVE_STATUSES}")
+            raise ValidationError(f"Недопустимый статус. Разрешены: {LEAVE_STATUSES}")
 
         if self._check_overlap():
-            raise ValueError(
+            raise ConflictError(
                 "Период отпуска пересекается с существующими активными отпусками или больничными."
             )
 
         super().save(*args, **kwargs)
 
     def deactivate(self):
+        # Проверка возможности удаления: нельзя удалить отпуск, если он ACTIVE
+        if self.status == "ACTIVE":
+            raise ConflictError("Невозможно удалить активный отпуск. Сначала измените его статус.")
+        
         self.is_active = False
         self.save()
         return True
@@ -223,6 +272,13 @@ class SickLeave(BaseModel):
 
     class Meta:
         table_name = "sick_leaves"
+
+    @classmethod
+    def get_active(cls, pk):
+        obj = cls.get_or_none((cls.id == pk) & (cls.is_active == True))
+        if not obj:
+            raise NotFoundError("Больничный не найден или неактивен.")
+        return obj
 
     def _check_overlap(self):
         overlap_sick = SickLeave.select().where(
@@ -244,16 +300,16 @@ class SickLeave(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.employee_position or not EmployeePosition.get_or_none(EmployeePosition.id == self.employee_position_id):
-            raise ValueError("Ставка сотрудника не существует.")
+            raise ValidationError("Ставка сотрудника не существует.")
 
         if self.start_date > dt.date.today():
-            raise ValueError("Дата начала больничного не может быть в будущем.")
+            raise ValidationError("Дата начала больничного не может быть в будущем.")
 
         if self.end_date < self.start_date:
-            raise ValueError("Дата окончания не может быть раньше даты начала.")
+            raise ValidationError("Дата окончания не может быть раньше даты начала.")
 
         if self.status not in SICK_LEAVE_STATUSES:
-            raise ValueError(f"Недопустимый статус. Разрешены: {SICK_LEAVE_STATUSES}")
+            raise ValidationError(f"Недопустимый статус. Разрешены: {SICK_LEAVE_STATUSES}")
 
         if self.certificate_number:
             existing = SickLeave.select().where(
@@ -262,18 +318,22 @@ class SickLeave(BaseModel):
                 (SickLeave.id != self.id)
             ).exists()
             if existing:
-                raise ValueError(
+                raise ConflictError(
                     "Номер листка нетрудоспособности уже существует среди активных записей."
                 )
 
         if self._check_overlap():
-            raise ValueError(
+            raise ConflictError(
                 "Период больничного пересекается с существующими активными больничными или отпусками."
             )
 
         super().save(*args, **kwargs)
 
     def deactivate(self):
+        # Проверка возможности удаления: нельзя удалить открытый больничный
+        if self.status == "OPEN":
+            raise ConflictError("Невозможно удалить открытый больничный. Сначала закройте его.")
+        
         self.is_active = False
         self.save()
         return True
