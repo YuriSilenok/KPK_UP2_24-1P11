@@ -109,6 +109,6 @@ erDiagram
         int group_id FK
         bool is_active
     }
-    Teacher ||--o{ LoadAssignment : has
-    Discipline ||--o{ LoadAssignment : has
-    Group ||--o{ LoadAssignment : has
+    Teacher ||--o{ LoadAssignment : "id -> teacher_id"
+    Discipline ||--o{ LoadAssignment : "id -> discipline_id"
+    Group ||--o{ LoadAssignment : "id -> group_id"
