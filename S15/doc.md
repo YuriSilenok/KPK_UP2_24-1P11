@@ -1,8 +1,9 @@
 
+
 **Связи:**
-- Teacher (1) ----< LoadAssignment (M)
-- Discipline (1) ----< LoadAssignment (M)
-- Group (1) ----< LoadAssignment (M)
+- teacher_id (FK) ссылается на id в Teacher (внешний сервис)
+- discipline_id (FK) ссылается на id в Discipline (внешний сервис)
+- group_id (FK) ссылается на id в Group (внешний сервис)
 
 **Транзитивные таблицы:** отсутствуют (связи многие-ко-многим не требуются)
 
@@ -52,7 +53,11 @@
 
 ### 3. Delete LoadAssignment by ID (Soft Delete)
 
-Returns: `true` if found and marked as deleted, otherwise `false`
+**Response:**
+
+| Parameter | Type |
+|-----------|------|
+| success | bool |
 
 ### 4. Get LoadAssignment by ID
 
@@ -86,22 +91,12 @@ Returns: `true` if found and marked as deleted, otherwise `false`
 | discipline_id | int |
 | group_id | int |
 | is_active | bool |
-# Сервис распределения нагрузки (Load Assignment Service)
-Вариант №15
+# Load Assignment Service (Вариант №15)
 
-## ER-диаграмма (Mermaid)
+## ER-диаграмма
 
 ```mermaid
 erDiagram
-    Teacher {
-        int id PK
-    }
-    Discipline {
-        int id PK
-    }
-    Group {
-        int id PK
-    }
     LoadAssignment {
         int id PK
         int teacher_id FK
@@ -109,6 +104,3 @@ erDiagram
         int group_id FK
         bool is_active
     }
-    Teacher ||--o{ LoadAssignment : "id -> teacher_id"
-    Discipline ||--o{ LoadAssignment : "id -> discipline_id"
-    Group ||--o{ LoadAssignment : "id -> group_id"
