@@ -115,18 +115,18 @@
 
 ## ER-диаграмма
 
-```mermaid
 erDiagram
     ACADEMIC_PERIOD {
-        int ID PK
-        string NAME 
-        date START_DATE
-        date END_DATE
-        boolean IS_SEMESTER
-        boolean IS_MODULE
-        string PERIOD_TYPE
-        int PARENT_PERIOD_ID FK
-        boolean IS_ACTIVE
+        int id PK
+        string name UK
+        date startDate
+        date endDate
+        boolean isSemester
+        boolean isModule
+        string periodType "semester или module"
+        int parentPeriodId FK
+        boolean isActive
+        UK (NAME)
     }
 
-    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "ID -> PARENT_PERIOD_ID"
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "период содержит подпериоды" 
