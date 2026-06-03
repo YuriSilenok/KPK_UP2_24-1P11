@@ -1,4 +1,4 @@
-from peewee import Model, IntegerField, BooleanField
+from peewee import AutoField, IntegerField, BooleanField, Model
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 db = SqliteExtDatabase('load_assignment.db')
@@ -10,7 +10,7 @@ class BaseModel(Model):
 
 
 class LoadAssignment(BaseModel):
-    id = IntegerField(primary_key=True)
+    id = AutoField(primary_key=True)
     teacher_id = IntegerField()
     discipline_id = IntegerField()
     group_id = IntegerField()
