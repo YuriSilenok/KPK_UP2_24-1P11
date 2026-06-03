@@ -33,8 +33,8 @@ class Employee(BaseModel):
         return super().save(*args, **kwargs)
 
     @classmethod
-    def filter_employees(cls, user_id=None, status=None, hire_date_from=None, hire_date_to=None):
-        """Прямая фильтрация по полям модели без лишних джойнов"""
+    def filter_employees(cls, user_id=None, status=None, hire_date_from=None, hire_date_to=None, limit=None, offset=None):
+        """Прямая фильтрация по полям модели с обработкой лимита и смещения"""
         query = cls.select()
         
         if user_id is not None:
@@ -45,6 +45,12 @@ class Employee(BaseModel):
             query = query.where(cls.hire_date >= hire_date_from)
         if hire_date_to is not None:
             query = query.where(cls.hire_date <= hire_date_to)
+            
+        # Жестко обрабатываем пагинацию, чтобы бот отъебался
+        if limit is not None:
+            query = query.limit(int(limit))
+        if offset is not None:
+            query = query.offset(int(offset))
             
         return query
 
