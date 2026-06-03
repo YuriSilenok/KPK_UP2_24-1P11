@@ -262,3 +262,45 @@
 | end_date | date |
 | document_number | string |
 | is_active | boolean |
+## ER-диаграмма
+
+```mermaid
+erDiagram
+
+    Position {
+        int id PK
+        string name
+        boolean is_active
+    }
+
+    EmployeeStatus {
+        int id PK
+        int employee_id
+        int position_id FK
+        float rate
+        boolean is_part_time
+        date start_date
+        date end_date
+        boolean is_active
+    }
+
+    Vacation {
+        int id PK
+        int employee_id
+        date start_date
+        date end_date
+        string vacation_type
+        boolean is_active
+    }
+
+    SickLeave {
+        int id PK
+        int employee_id
+        date start_date
+        date end_date
+        string document_number
+        boolean is_active
+    }
+
+    Position ||--o{ EmployeeStatus : "id -> position_id"
+
