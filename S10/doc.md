@@ -73,17 +73,15 @@
 **Информация, возвращаемая при успешном поиске**
 
 
-| Параметр | Пояснение | Тип |
-|----------|-----------|-----|
-| `id` | Внутренний ID записи | int |
-| `user_id` | ID из Profile Service | int |
-| `hire_date` | Дата найма | date |
-| `status` | Текущий статус | string |
-| `is_active` | Статус активности записи | boolean |
-| `updated_at` | Дата и время последнего обновления | datetime |
-| `positions` | Список должностей (Вычисляемое свойство ORM-модели на основе JOIN) | list |
-
-*Примечание:* Параметр `positions` не является физическим столбцом таблицы `employees`. Это динамическое вычисляемое свойство (property) уровня приложения, агрегирующее данные из связанных таблиц `employee_positions` и `positions`. Structure: `[{"position_title": string, "start_date": string, "end_date": string, "load_factor": float}]`.
+| Параметр | Пояснение | Тип | Ограничение |
+|----------|-----------|-----|-------------|
+| `id` | Внутренний ID записи | int | PK |
+| `user_id` | ID из Profile Service | int | unique |
+| `hire_date` | Дата найма | date | >= 1900-01-01 |
+| `status` | Текущий статус | string | active / on_vacation / sick_leave / fired |
+| `is_active` | Статус активности записи | boolean | – |
+| `updated_at` | Дата и время последнего обновления | datetime | – |
+| `positions` | Список должностей (вычисляемая структура) | list | структура `[{"position_title": string, "start_date": string, "end_date": string, "load_factor": float}]` |
 
 ---
 
@@ -112,31 +110,39 @@
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
 | `is_active` | Статус активности записи | boolean |
-| `position_id` | Идентификатор связанной должности (из транзитивной таблицы) | int |
+| `position_id` | Идентификатор должности. Получается через подзапрос / JOIN транзитивной таблицы `employee_positions` по условию соответствия `employee_id`. | int |
 
 ---
 
 ## Дополнительное описание API сопутствующих таблиц
 
 ### 6. Управление должностями (`positions`)
-Позволяет просматривать базовые справочные данные должностей, используемые транзитивной таблицей.
-- **Входные данные:** `id` (int), `title` (string), `description` (text).
-- **Выходные данные:** Полный объект должности.
+- **Добавить**: Принимает `title` (string, max 100), `description` (text). Возвращает созданный объект `Position`.
+- **Изменить**: Принимает `id` (int) и опционально изменяемые поля `title`, `description`. Возвращает обновленный `Position`.
+- **Удалить**: Принимает `id` (int). Возвращает `True / False`.
+- **Получить по ID**: Принимает `id` (int). Возвращает `Position` со всеми полями.
+- **Получить список**: Принимает `limit` (int) и `offset` (int). Возвращает массив объектов `Position`.
 
 ### 7. Управление назначениями (`employee_positions`)
-Обеспечивает связь сотрудников с должностями для построения сложных структур.
-- **Входные данные:** `employee_id` (int), `position_id` (int), `start_date` (date), `end_date` (date), `load_factor` (float).
-- **Выходные данные:** Объект связи параметров назначения.
+- **Добавить**: Принимает `employee_id` (int), `position_id` (int), `start_date` (date), `end_date` (date, null), `load_factor` (float). Возвращает созданную связь.
+- **Изменить**: Принимает `id` (int) и изменяемые параметры периода или ставки. Возвращает обновленную связь.
+- **Удалить**: Принимает `id` (int). Возвращает `True / False`.
+- **Получить по ID**: Принимает `id` (int). Возвращает объект связи.
+- **Получить список**: Принимает `employee_id` или `position_id`. Возвращает список связей.
 
 ### 8. Логирование отпусков (`vacations`)
-Учет периодов отдыха, привязанных к сотруднику.
-- **Входные данные:** `employee_id` (int), `start_date` (date), `end_date` (date), `type` (string).
-- **Выходные данные:** Запись лога отпуска.
+- **Добавить**: Принимает `employee_id` (int), `start_date` (date), `end_date` (date), `type` (string). Возвращает объект отпуска.
+- **Изменить**: Принимает `id` (int), изменяет даты или тип. Возвращает обновленный объект.
+- **Удалить**: Принимает `id` (int). Возвращает `True / False`.
+- **Получить по ID**: Принимает `id` (int). Возвращает запись отпуска.
+- **Получить список**: Фильтр по `employee_id`. Возвращает историю отпусков сотрудника.
 
 ### 9. Логирование больничных (`sick_leaves`)
-Учет периодов нетрудоспособности, привязанных к сотруднику.
-- **Входные данные:** `employee_id` (int), `start_date` (date), `end_date` (date), `diagnosis` (text).
-- **Выходные данные:** Запись лога больничного листа.
+- **Добавить**: Принимает `employee_id` (int), `start_date` (date), `end_date` (date), `diagnosis` (text). Возвращает объект больничного.
+- **Изменить**: Принимает `id` (int), изменяет даты или диагноз. Возвращает обновленный объект.
+- **Удалить**: Принимает `id` (int). Возвращает `True / False`.
+- **Получить по ID**: Принимает `id` (int). Возвращает запись больничного.
+- **Получить список**: Фильтр по `employee_id`. Возвращает историю больничных сотрудника.
 
 ---
 
@@ -146,11 +152,12 @@
 erDiagram
     employees {
         int id PK
-        int user_id FK "NOT NULL"
+        int user_id "NOT NULL"
         date hire_date "NOT NULL"
         string status "NOT NULL"
         boolean is_active "DEFAULT true"
         datetime updated_at "NOT NULL"
+        list positions "Property"
     }
     positions {
         int id PK
@@ -191,4 +198,3 @@ erDiagram
 - Связь между таблицами **`positions`** и **`employee_positions`** осуществляется по полям: `employee_positions.position_id` (int, FK) ➔ `positions.id` (int, PK).
 - Связь между таблицами **`employees`** и **`vacations`** осуществляется по полям: `vacations.employee_id` (int, FK) ➔ `employees.id` (int, PK).
 - Связь между таблицами **`employees`** и **`sick_leaves`** осуществляется по полям: `sick_leaves.employee_id` (int, FK) ➔ `employees.id` (int, PK).
-- Внешняя логическая связь с **Profile Service**: `employees.user_id` (int, FK) ➔ `profiles.id` (int, PK) внешнего сервиса.
