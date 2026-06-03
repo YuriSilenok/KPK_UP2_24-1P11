@@ -30,15 +30,6 @@ class Group(BaseModel):
     class Meta:
         table_name = 'Group'
 
-class Student(BaseModel):
-    id = AutoField()
-    student_number = CharField(max_length=50, unique=True, constraints=[SQL('NOT NULL')])
-    current_group_id = ForeignKeyField(Group, backref="students", on_delete='CASCADE')
-    status = CharField(max_length=50, constraints=[SQL('NOT NULL')])
-
-    class Meta:
-        table_name = 'Student'
-
 class LoadAssignment(BaseModel):
     id = AutoField()
     teacher_id = ForeignKeyField(Teacher, backref='assignments', on_delete='CASCADE')
@@ -56,7 +47,7 @@ class LoadAssignment(BaseModel):
 
 def init_db():
     db.connect()
-    db.create_tables([Teacher, Discipline, Group, Student, LoadAssignment], safe=True)
+    db.create_tables([Teacher, Discipline, Group, LoadAssignment], safe=True)
     db.close()
 
 if __name__ == '__main__':
