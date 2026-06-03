@@ -124,5 +124,4 @@
         boolean is_active
         int parent_period_id FK
     }
-
     academic_period||--o{ academic_period : "contains (parent_period_id references id)"
