@@ -92,11 +92,7 @@
 | group_id | int |
 | is_active | bool |
 # Load Assignment Service (Вариант №15)
-
 ## ER-диаграмма
-
-Поскольку сервис работает только со своей сущностью `LoadAssignment`, а ссылки `teacher_id`, `discipline_id`, `group_id` указывают на сущности в **других сервисах** (Teacher, Discipline, Group), диаграмма ограничена одной таблицей. Межсервисные связи не отображаются как реляционные, но описаны в тексте.
-
 ```mermaid
 erDiagram
     LoadAssignment {
