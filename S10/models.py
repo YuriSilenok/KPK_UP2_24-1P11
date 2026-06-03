@@ -33,12 +33,10 @@ class Employee(BaseModel):
         return super().save(*args, **kwargs)
 
     @classmethod
-    def filter_employees(cls, user_id=None, status=None, position_id=None, hire_date_from=None, hire_date_to=None):
+    def filter_employees(cls, user_id=None, status=None, hire_date_from=None, hire_date_to=None):
+        """Прямая фильтрация по полям модели без лишних джойнов"""
         query = cls.select()
         
-        if position_id is not None:
-            query = query.join(EmployeePosition).where(EmployeePosition.position == position_id)
-            
         if user_id is not None:
             query = query.where(cls.user_id == user_id)
         if status is not None:
@@ -50,73 +48,11 @@ class Employee(BaseModel):
             
         return query
 
-class Position(BaseModel):
-    class Meta:
-        db_table = "positions"
-
-    id = AutoField()
-    name = CharField(max_length=100, unique=True, null=False)
-    description = TextField(null=True)
-    is_active = BooleanField(default=True)
-
-class EmployeePosition(BaseModel):
-    class Meta:
-        db_table = "employee_positions"
-
-    id = AutoField()
-    employee = ForeignKeyField(Employee, backref='employee_positions_rel', on_delete='CASCADE', null=False)
-    position = ForeignKeyField(Position, backref='employee_positions_rel', on_delete='CASCADE', null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=True)
-    load_factor = FloatField(null=False)
-    is_active = BooleanField(default=True)
-
-    def save(self, *args, **kwargs):
-        if self.end_date is not None and self.end_date < self.start_date:
-            raise ValueError("Дата окончания должности не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
-
-class Vacation(BaseModel):
-    class Meta:
-        db_table = "vacations"
-
-    id = AutoField()
-    employee = ForeignKeyField(Employee, backref='vacations', on_delete='CASCADE', null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=False)
-    vacation_type = CharField(max_length=255, null=False)
-    is_active = BooleanField(default=True)
-
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
-        if len(str(self.vacation_type)) > 255:
-            raise ValueError("Длина типа отпуска не должна превышать 255 символов")
-        return super().save(*args, **kwargs)
-
-class SickLeave(BaseModel):
-    class Meta:
-        db_table = "sick_leaves"
-
-    id = AutoField()
-    employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=False)
-    document_number = CharField(max_length=255, null=False)
-    is_active = BooleanField(default=True)
-
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания больничного не может быть раньше даты начала")
-        if len(str(self.document_number)) > 255:
-            raise ValueError("Длина номера документа не должна превышать 255 символов")
-        return super().save(*args, **kwargs)
-
 def init_db():
     db.connect()
-    db.create_tables([Employee, Position, EmployeePosition, Vacation, SickLeave], safe=True)
+    db.create_tables([Employee], safe=True)
     db.close()
 
 if __name__ == '__main__':
     init_db()
-    print("Database initialized successfully.")
+    print("Database initialized successfully with single table 'employees'.")
