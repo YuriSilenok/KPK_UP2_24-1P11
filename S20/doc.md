@@ -7,9 +7,10 @@
 | Параметр | Пояснение | Обязательность | Тип | Ограничение |
 |----------|-----------|----------------|-----|-------------|
 | name | Название учебного периода | Обязательно | Строка | 1-100 символов |
-| academic_year | Учебный год в формате ГГГГ-ГГГГ | Обязательно | Строка | Формат 2025-2026 | 
 | start_date | Дата начала учебного периода | Обязательно | Дата | Не ранее 2000-01-01 | 
 | end_date | Дата окончания учебного периода | Обязательно | Дата | Больше start_date | 
+| is_semester | Является ли период семестром | Обязательно | Логический | True / False |
+| is_module | Является ли период модулем | Обязательно | Логический | True / False |
 | period_type | Тип периода (семестр или модуль) | Обязательно | Строка | semester, module |
 | parent_period_id | ID родительского периода (0 для семестра, ID семестра для модуля) | Необязательно | Целое | 0 - для семестра, ID семестра - для модуля | 
 
@@ -21,10 +22,10 @@
 |----------|-----|
 | id | Целое |
 | name | Строка | 
-| academic_year | Строка |
 | start_date | Дата | 
 | end_date | Дата | 
-| period_type | Строка | 
+| is_semester | Логический |
+| is_module | Логический |
 | parent_period_id | Целое | 
 | is_active | Логический | 
 
@@ -35,10 +36,10 @@
 | Параметр | Пояснение | Обязательность | Тип | Ограничение |
 |----------|-----------|----------------|-----|-------------|
 | name | Название учебного периода | Необязательно | Строка | 1-100 символов |
-| academic_year | Учебный год в формате ГГГГ-ГГГГ | Необязательно | Строка | Формат 2025-2026 |
 | start_date | Дата начала учебного периода | Необязательно | Дата | Не ранее 2000-01-01 |
 | end_date | Дата окончания учебного периода | Необязательно | Дата | Больше start_date |
-| period_type | Тип периода | Необязательно | Строка | semester, module |
+| is_semester | Является ли период семестром | Необязательно | Логический | True / False |
+| is_module | Является ли период модулем | Необязательно | Логический | True / False |
 | parent_period_id | ID родительского периода | Необязательно | Целое | 0 – для семестра, ID семестра – для модуля |
 
 **Уникальная комбинация параметров:** `name` и `academic_year` (при изменении нельзя создать дубликат с существующим периодом)
@@ -49,10 +50,10 @@
 |----------|-----|
 | id | Целое |
 | name | Строка |
-| academic_year | Строка |
 | start_date | Дата | 
 | end_date | Дата |
-| period_type | Строка | 
+| is_semester | Логический |
+| is_module | Логический |
 | parent_period_id | Целое |
 | is_active | Логический |
 
@@ -74,10 +75,10 @@
 |----------|-----|
 | id | Целое | 
 | name | Строка | 
-| academic_year | Строка | 
 | start_date | Дата | 
 | end_date | Дата | 
-| period_type | Строка |
+| is_semester | Логический |
+| is_module | Логический |
 | parent_period_id | Целое | 
 | is_active | Логический | 
 
@@ -89,8 +90,8 @@
 
 | Параметр | Пояснение | Тип |
 |----------|-----------|-----|
-| academic_year | Фильтр по учебному году | Строка |
-| period_type | Тип периода | Строка | 
+| is_semester | Фильтр: является ли семестром | Логический |
+| is_module | Фильтр: является ли модулем | Логический |
 | name_contains | Поиск по части имени | Строка | 
 | parent_period_id | Фильтр по родительскому периоду | Целое | 
 
@@ -103,10 +104,10 @@
 |----------|-----|
 | id | Целое |
 | name | Строка |
-| academic_year | Строка |
 | start_date | Дата |
 | end_date | Дата |
-| period_type | Строка |
+| is_semester | Логический |
+| is_module | Логический |
 | parent_period_id | Целое |
 | is_active | Логический | 
 
@@ -116,21 +117,14 @@
 
 ```mermaid
 erDiagram
-    school_year {
-        INT academic_year PK
-        DATE start_date
-        DATE end_date
+    ACADEMIC_PERIOD {
+        int id PK
+        string name
+        date start_date
+        date end_date
+        boolean is_semester
+        boolean is_module
+        int parent_period_id
+        boolean is_active
     }
-
-    academic_period {
-        INT id PK
-        VARCHAR name
-        INT academic_year FK
-        VARCHAR period_type
-        INT parent_period_id FK
-        BOOLEAN is_active
-    }
-
-    school_year ||--o{ academic_period : "содержит"
-    academic_period ||--o{ academic_period : "parent"
 ```
