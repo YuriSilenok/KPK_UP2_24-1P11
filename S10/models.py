@@ -1,6 +1,5 @@
 import datetime
 from peewee import *
-from playhouse import validate_one_of, validate_length  
 
 db = SqliteDatabase('employee_status.db')
 
@@ -25,15 +24,21 @@ class Employee(BaseModel):
         db_table = "employees"
 
     id = AutoField()
-    user_id = IntegerField(unique=True, null=False, validators=[validate_positive]) 
-    hire_date = DateField(null=False, validators=[validate_hire_date])
-    status = CharField(max_length=20, default='active',
-                      validators=[validate_one_of(['active', 'on_vacation', 'sick_leave', 'fired'])])
+    user_id = IntegerField(unique=True, null=False) 
+    hire_date = DateField(null=False)
+    status = CharField(max_length=20, default='active')
     is_deleted = BooleanField(default=False)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
-        """Автоматически обновляем updated_at при каждом сохранении"""
+        """Валидация полей и автоматическое обновление updated_at перед сохранением"""
+        validate_positive(self.user_id)
+        validate_hire_date(self.hire_date)
+        
+        allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
+        if self.status not in allowed_statuses:
+            raise ValueError(f"Статус должен быть одним из: {', '.join(allowed_statuses)}")
+            
         self.updated_at = datetime.datetime.now()
         return super().save(*args, **kwargs)
 
@@ -63,8 +68,13 @@ class Position(BaseModel):
         db_table = "positions"
 
     id = AutoField()
-    title = CharField(max_length=100, null=False, validators=[validate_length(1, 100)])
+    title = CharField(max_length=100, null=False)
     description = TextField(null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.title or not (1 <= len(str(self.title)) <= 100):
+            raise ValueError("Длина названия должности должна быть от 1 до 100 символов")
+        return super().save(*args, **kwargs)
 
 class EmployeePosition(BaseModel):
     class Meta:
@@ -80,7 +90,7 @@ class EmployeePosition(BaseModel):
     def save(self, *args, **kwargs):
         if self.end_date is not None and self.end_date < self.start_date:
             raise ValueError("Дата окончания должности не может быть раньше даты начала")
-        super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
 class Vacation(BaseModel):
     class Meta:
@@ -90,13 +100,15 @@ class Vacation(BaseModel):
     employee = ForeignKeyField(Employee, backref='vacations', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    type = CharField(max_length=50, null=False, validators=[validate_length(1, 50)])
+    type = CharField(max_length=50, null=False)
     is_deleted = BooleanField(default=False) 
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
-        super().save(*args, **kwargs)
+        if not self.type or not (1 <= len(str(self.type)) <= 50):
+            raise ValueError("Длина типа отпуска должна быть от 1 до 50 символов")
+        return super().save(*args, **kwargs)
     
     def soft_delete(self):
         """Мягкое удаление записи об отпуске"""
@@ -114,13 +126,15 @@ class SickLeave(BaseModel):
     employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    diagnosis = TextField(null=True, validators=[validate_length(0, 500)])
+    diagnosis = TextField(null=True)
     is_deleted = BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания больничного не может быть раньше даты начала")
-        super().save(*args, **kwargs)
+        if self.diagnosis and len(str(self.diagnosis)) > 500:
+            raise ValueError("Длина диагноза не должна превышать 500 символов")
+        return super().save(*args, **kwargs)
     
     def soft_delete(self):
         """Мягкое удаление записи о больничном"""
@@ -137,4 +151,5 @@ def initialize_db():
 
 if __name__ == '__main__':
     initialize_db()
-    print("База данных инициализирована. Таблицы созданы.")
+    # Заменено на английский язык, чтобы текст отображался корректно в любой консоли
+    print("Database initialized. Tables created successfully.")
