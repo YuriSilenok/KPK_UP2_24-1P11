@@ -1,7 +1,5 @@
-import os
 from peewee import *
 from datetime import date
-import re
 
 db = SqliteDatabase('academic_periods.db')
 
@@ -12,176 +10,63 @@ class BaseModel(Model):
 class AcademicPeriod(BaseModel):
     id = AutoField()
     name = CharField(max_length=100, null=False)
-    academic_year = CharField(max_length=9, null=False)  # Формат 2025-2026, обязательный
-    period_type = CharField(max_length=10, null=False, default='semester')  # semester, module
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    parent_period_id = IntegerField(null=False, default=0)  # 0 — корневой период, иначе ID родителя (семестра для модуля)
+    is_semester = BooleanField(default=False)
+    is_module = BooleanField(default=False)
+    period_type = CharField(max_length=10, null=False)
+    parent_period_id = IntegerField(null=True, default=0)
     is_active = BooleanField(default=True)
 
     class Meta:
-        indexes = (
-            (('name', 'academic_year'), True),  # уникальная комбинация
-        )
-        constraints = [
-            SQL("CHECK(name <> '')")
+        indexes = ((('name',), True),)
+
+class AcademicPeriodService:
+    @staticmethod
+    def validate_and_create(data):
+        
+        name = data.get('name', '').strip()
+        if not name: raise ValueError("Name is required")
+        if len(name) > 100: raise ValueError("Name too long")
+
+        if data.get('start_date') < date(2000, 1, 1):
+            raise ValueError("Start date must be >= 2000-01-01")
+        return AcademicPeriod.create(**data)
+
+    @staticmethod
+    def get_all_by_filters(is_semester=None, is_module=None, name_contains=None, parent_period_id=None):
+        query = AcademicPeriod.select().where(AcademicPeriod.is_active == True)
+        
+        if is_semester is not None: query = query.where(AcademicPeriod.is_semester == is_semester)
+        if is_module is not None: query = query.where(AcademicPeriod.is_module == is_module)
+        if name_contains: query = query.where(AcademicPeriod.name.contains(name_contains))
+        if parent_period_id is not None: query = query.where(AcademicPeriod.parent_period_id == parent_period_id)
+
+        return [
+            {
+                "id": p.id, "name": p.name, "start_date": p.start_date.isoformat(),
+                "end_date": p.end_date.isoformat(), "is_semester": p.is_semester,
+                "is_module": p.is_module, "parent_period_id": p.parent_period_id,
+                "is_active": p.is_active
+            } for p in query
         ]
 
-    def save(self, *args, **kwargs):
-        stripped_name = self.name.strip()
-
-        if not stripped_name:
-            raise ValueError("name must not be empty or consist only of spaces")
-
-        if len(stripped_name) > 100:
-            raise ValueError("name must be at most 100 significant characters (spaces at ends don't count)")
-
-        self.name = stripped_name
-
-        if self.period_type not in ('semester', 'module'):
-            raise ValueError("period_type must be either 'semester' or 'module'")
-
-        match = re.match(r'^(\d{4})-(\d{4})$', self.academic_year)
-
-        if not match:
-            raise ValueError("academic_year must be in format YYYY-YYYY")
-
-        start_year = int(match.group(1))
-        end_year = int(match.group(2))
-
-        if end_year != start_year + 1:
-            raise ValueError(
-                "academic_year must contain consecutive years"
-            )
-
-        if self.start_date < date(2000, 1, 1):
-            raise ValueError("start_date must be >= 2000-01-01")
-
-        if self.end_date <= self.start_date:
-            raise ValueError("end_date must be greater than start_date")
-
-        if self.period_type == 'semester' and self.parent_period_id != 0:
-            raise ValueError("Semester must have parent_period_id = 0")
-
-        if self.period_type == 'module' and self.parent_period_id == 0:
-            raise ValueError("Module must have parent_period_id pointing to a semester")
-
-        if self.period_type == 'module':
-            parent = AcademicPeriod.get_or_none(id=self.parent_period_id)
-
-            if parent is None:
-                raise ValueError(
-                    "parent_period_id must reference existing semester"
-                )
-
-            if parent.period_type != 'semester':
-                raise ValueError(
-                    "parent_period_id must reference a semester"
-                )
-
-        existing = AcademicPeriod.get_or_none(
-            (AcademicPeriod.name == self.name) &
-            (AcademicPeriod.academic_year == self.academic_year)
-        )
-
-        if existing is not None and existing.id != self.id:
-            raise ValueError(
-                "AcademicPeriod with this name and academic_year already exists"
-            )
-        try:
-            super().save(*args, **kwargs)
-
-        except IntegrityError:
-            raise ValueError(
-                "AcademicPeriod with this name and academic_year already exists"
-            )
-
-    def soft_delete(self):
-        if self.is_active:
-            self.is_active = False
-            self.save()
-            return True
-
-        return False
-
-    @classmethod
-    def get_all_by_filters(
-        cls,
-        name_contains=None,
-        academic_year=None,
-        period_type=None,
-        parent_period_id=None
-    ):
-        query = cls.select().where(
-            cls.is_active == True
-        )
-
-        if name_contains:
-            query = query.where(
-                cls.name.contains(name_contains)
-            )
-
-        if academic_year:
-            query = query.where(
-                cls.academic_year == academic_year
-            )
-
-        if period_type:
-            query = query.where(
-                cls.period_type == period_type
-            )
-
-        if parent_period_id is not None:
-            query = query.where(
-                cls.parent_period_id == parent_period_id
-            )
-
-        result = []
-
-        for period in query:
-            result.append({
-                "id": period.id,
-                "name": period.name,
-                "academic_year": period.academic_year,
-                "start_date": period.start_date.isoformat(),
-                "end_date": period.end_date.isoformat(),
-                "period_type": period.period_type,
-                "parent_period_id": period.parent_period_id,
-                "is_active": period.is_active
-            })
-
-        return result
-
-    @classmethod
-    def get_by_id(cls, period_id):
-        """
-        Получает учебный период по ID.
-        """
-        period = cls.get_or_none(id=period_id)
-
-        if period is None:
-            return None
-
+    @staticmethod
+    def get_by_id(period_id):
+        p = AcademicPeriod.get_or_none(id=period_id)
+        if not p: return None
         return {
-            "id": period.id,
-            "name": period.name,
-            "academic_year": period.academic_year,
-            "start_date": period.start_date.isoformat(),
-            "end_date": period.end_date.isoformat(),
-            "period_type": period.period_type,
-            "parent_period_id": period.parent_period_id,
-            "is_active": period.is_active
+            "id": p.id, "name": p.name, "start_date": p.start_date.isoformat(),
+            "end_date": p.end_date.isoformat(), "is_semester": p.is_semester,
+            "is_module": p.is_module, "parent_period_id": p.parent_period_id,
+            "is_active": p.is_active
         }
-
-
 def init_db():
     db.connect()
     db.create_tables([AcademicPeriod], safe=True)
     db.close()
 
-def get_db_init_handler():
-    def handler():
-        init_db()
-        return {"message": "Database initialized"}
-    return handler
+if __name__ == "__main__":
+    init_db()
+    print("Database ready.")
     
