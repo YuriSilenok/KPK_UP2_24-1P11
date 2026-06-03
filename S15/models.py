@@ -11,9 +11,9 @@ class BaseModel(Model):
 
 class LoadAssignment(BaseModel):
     id = IntegerField(primary_key=True)
-    teacher_id = IntegerField()  # ссылка на внешний сервис (Teacher)
-    discipline_id = IntegerField()  # ссылка на внешний сервис (Discipline)
-    group_id = IntegerField()  # ссылка на внешний сервис (Group)
+    teacher_id = IntegerField()
+    discipline_id = IntegerField()
+    group_id = IntegerField()
     is_active = BooleanField(default=True)
 
 
