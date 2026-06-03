@@ -1,119 +1,303 @@
-import datetime
-from peewee import *
+# Сервис статуса сотрудника (Employee Status Service) – Вариант 10
 
-db = SqliteDatabase('employee_status.db')
+## Список функций
+- `create_employee` – создание записи о сотруднике
+- `update_employee` – изменение статусной информации сотрудника
+- `delete_employee` – мягкое удаление (is_active = False)
+- `get_employee` – получение сотрудника по ID
+- `list_employees` – получение списка сотрудников с фильтрацией и пагинацией
 
-# ---------- Модели ----------
-class BaseModel(Model):
-    class Meta:
-        database = db
+---
 
-class Employee(BaseModel):
-    class Meta:
-        db_table = "employees"
+## Сущность «Сотрудник»
 
-    id = AutoField()
-    user_id = IntegerField(unique=True, null=False) 
-    hire_date = DateField(null=False)
-    status = CharField(max_length=20, default='active', null=False) 
-    is_active = BooleanField(default=True)
-    updated_at = DateTimeField(default=datetime.datetime.now) 
+### 1. Создание сотрудника (`create_employee`)
 
-    def save(self, *args, **kwargs):
-        """Валидация данных перед записью в БД"""
-        if self.user_id <= 0:
-            raise ValueError("user_id должен быть положительным целым числом")
-        if self.hire_date < datetime.date(1900, 1, 1):
-            raise ValueError("Дата найма не может быть раньше 1900-01-01")
-        
-        allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
-        if self.status not in allowed_statuses:
-            raise ValueError(f"Статус должен быть одним из: {', '.join(allowed_statuses)}")
-            
-        self.updated_at = datetime.datetime.now()
-        return super().save(*args, **kwargs)
+**Информация, требуемая для создания сотрудника**
 
-    @property
-    def positions(self):
-        """Вычисляемое свойство (property) для API, объединяющее таблицы"""
-        result = []
-        query = (EmployeePosition
-                 .select(EmployeePosition, Position)
-                 .join(Position)
-                 .where(EmployeePosition.employee == self))
-        for ep in query:
-            result.append({
-                "position_title": ep.position.title,
-                "start_date": ep.start_date.isoformat(),
-                "end_date": ep.end_date.isoformat() if ep.end_date else None,
-                "load_factor": ep.load_factor
-            })
-        return result
 
-class Position(BaseModel):
-    class Meta:
-        db_table = "positions"
 
-    id = AutoField()
-    title = CharField(max_length=100, null=False)
-    description = TextField(null=False)
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `user_id` | ID сотрудника из Profile Service | Да | int | уникальный | – |
+| `hire_date` | Дата найма | Да | date | не раньше 1900-01-01 | – |
+| `status` | Текущий статус | Нет | string | active / on_vacation / sick_leave / fired | `'active'` |
 
-    def save(self, *args, **kwargs):
-        if not self.title or not (1 <= len(str(self.title)) <= 100):
-            raise ValueError("Длина названия должности должна быть от 1 до 100 символов")
-        return super().save(*args, **kwargs)
+**Уникальные комбинации:** `user_id` (ограничение уникальности реализовано на уровне БД)
 
-class EmployeePosition(BaseModel):
-    class Meta:
-        db_table = "employee_positions"
+**Информация, возвращаемая при успешном создании**
 
-    id = AutoField()
-    employee = ForeignKeyField(Employee, backref='employee_positions_rel', on_delete='CASCADE', null=False)
-    position = ForeignKeyField(Position, backref='employee_positions_rel', on_delete='CASCADE', null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=True)
-    load_factor = FloatField(null=False)
 
-    def save(self, *args, **kwargs):
-        if self.end_date is not None and self.end_date < self.start_date:
-            raise ValueError("Дата окончания должности не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
 
-class Vacation(BaseModel):
-    class Meta:
-        db_table = "vacations"
+| Параметр | Пояснение | Тип |
+|----------|-----------|-----|
+| `id` | Внутренний ID записи (PK) | int |
+| `user_id` | ID из Profile Service | int |
+| `hire_date` | Дата найма | date |
+| `status` | Текущий статус | string |
+| `updated_at` | Дата и время создания | datetime |
 
-    id = AutoField()
-    employee = ForeignKeyField(Employee, backref='vacations', on_delete='CASCADE', null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=False)
-    type = CharField(max_length=50, null=False)
+---
 
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
+### 2. Изменение сотрудника по ID (`update_employee`)
 
-class SickLeave(BaseModel):
-    class Meta:
-        db_table = "sick_leaves"
+**Информация, требуемая для изменения** (все поля опциональны)
 
-    id = AutoField()
-    employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
-    start_date = DateField(null=False)
-    end_date = DateField(null=False)
-    diagnosis = TextField(null=False)
 
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания больничного не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
 
-def init_db():
-    db.connect()
-    db.create_tables([Employee, Position, EmployeePosition, Vacation, SickLeave], safe=True)
-    db.close()
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `hire_date` | Дата найма | Нет | date | не раньше 1900-01-01 | – |
+| `status` | Статус | Нет | string | active / on_vacation / sick_leave / fired | – |
 
-if __name__ == '__main__':
-    init_db()
-    print("Database initialized successfully.")
+**Информация, возвращаемая при успешном изменении**
+
+
+
+| Параметр | Пояснение | Тип |
+|----------|-----------|-----|
+| `id` | Внутренний ID записи | int |
+| `user_id` | ID из Profile Service | int |
+| `hire_date` | Дата найма | date |
+| `status` | Текущий статус | string |
+| `updated_at` | Дата и время последнего обновления | datetime |
+
+---
+
+### 3. Удаление сотрудника по ID (`delete_employee`)
+
+> Метод производит логическое (мягкое) удаление путем перевода флага `is_active` в `False`. Физического зачищения строк в БД не происходит.
+
+**Возвращаемое значение:** `True / False` (bool)
+
+---
+
+### 4. Получение сотрудника по ID (`get_employee`)
+
+**Информация, возвращаемая при успешном поиске**
+
+
+
+| Параметр | Пояснение | Тип |
+|----------|-----------|-----|
+| `id` | Внутренний ID записи | int |
+| `user_id` | ID из Profile Service | int |
+| `hire_date` | Дата найма | date |
+| `status` | Текущий статус | string |
+| `is_active` | Статус активности записи | boolean |
+| `updated_at` | Дата и время последнего обновления | datetime |
+| `positions` | Список должностей (вычисляемая структура) | list |
+
+---
+
+### 5. Получение списка сотрудников по заданным параметрам (`list_employees`)
+
+**Параметры для получения списка**
+
+
+
+| Параметр (англ.) | Пояснение | Тип |
+|----------|-----------|-----|
+| `user_id` | ID сотрудника для точного совпадения | int |
+| `status` | Статус для точного совпадения | string |
+| `position_id` | ID должности для фильтрации через транзитивную таблицу | int |
+| `hire_date_from` | Дата найма от (диапазон (`>=`)) | date |
+| `hire_date_to` | Дата найма до (диапазон (`<=`)) | date |
+| `is_active` | Фильтр по статусу удаления | boolean |
+| `limit` | Лимит записей для пагинации | int |
+| `offset` | Смещение для пагинации | int |
+
+**Информация, возвращаемая в виде списка сотрудников**
+
+
+
+| Параметр | Пояснение | Тип |
+|----------|-----------|-----|
+| `id` | Внутренний ID записи | int |
+| `user_id` | ID из Profile Service | int |
+| `hire_date` | Дата найма | date |
+| `status` | Текущий статус | string |
+| `is_active` | Статус активности записи | boolean |
+| `position_ids` | Массив идентификаторов (`list[int]`). Агрегирует ID всех связанных должностей сотрудника через отношение «многие-ко-многим» путем JOIN транзитивной таблицы `employee_positions`. | list |
+
+---
+
+## Дополнительное описание API сопутствующих таблиц
+
+### 6. Управление должностями (`positions`)
+
+**Информация, требуемая для создания**
+
+
+
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `title` | Название должности | Да | string | макс 100 символов | – |
+| `description` | Описание обязанностей | Да | text | – | – |
+
+**Уникальные комбинации:** отсутствуют
+
+**Информация при успешном создании / Получить по ID / Изменить**
+
+
+
+| Параметр | Тип |
+|----------|-----|
+| `id` | int |
+| `title` | string |
+| `description` | text |
+
+- **Изменить**: Принимает `id` (int) и опционально изменяемые поля `title`, `description`. Возвращает структуру измененного объекта.
+- **Удалить**: Принимает `id` (int). Возвращает `True / False` (bool).
+- **Получить список**: Принимает `limit` (int), `offset` (int). Возвращает список объектов `Position`.
+
+---
+
+### 7. Управление назначениями (`employee_positions`)
+
+**Информация, требуемая для создания**
+
+
+
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `employee` | ID связанного сотрудника | Да | int | должен существовать | – |
+| `position` | ID связанной должности | Да | int | должен существовать | – |
+| `start_date` | Дата начала работы | Да | date | – | – |
+| `end_date` | Дата окончания работы | Нет | date | проверка end_date >= start_date | `null` |
+| `load_factor` | Ставка (коэффициент занятости) | Да | float | положительное | – |
+
+**Уникальные комбинации:** отсутствуют
+
+**Информация при успешном создании / Получить по ID / Изменить**
+
+
+
+| Параметр | Тип |
+|----------|-----|
+| `id` | int |
+| `employee` | int |
+| `position` | int |
+| `start_date` | date |
+| `end_date` | date |
+| `load_factor` | float |
+
+- **Изменить**: Принимает `id` (int) и изменяемые параметры периода или ставки. Контролируется проверка `end_date >= start_date`. Возвращает измененный объект связи.
+- **Удалить**: Принимает `id` (int). Возвращает `True / False` (bool).
+- **Получить список**: Принимает параметры фильтрации `employee` или `position`. Возвращает список объектов связи.
+
+---
+
+### 8. Логирование отпусков (`vacations`)
+
+**Информация, требуемая для создания**
+
+
+
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `employee` | ID связанного сотрудника | Да | int | должен существовать | – |
+| `start_date` | Дата начала отпуска | Да | date | – | – |
+| `end_date` | Дата окончания отпуска | Да | date | проверка end_date >= start_date | – |
+| `type` | Вид отпуска | Да | string | макс 50 символов | – |
+
+**Уникальные комбинации:** отсутствуют
+
+**Информация при успешном создании / Получить по ID / Изменить / Получить список**
+
+
+
+| Параметр | Тип |
+|----------|-----|
+| `id` | int |
+| `employee` | int |
+| `start_date` | date |
+| `end_date` | date |
+| `type` | string |
+| `is_active` | boolean |
+
+- **Изменить**: Принимает `id` (int) и обновляемые поля дат или типа отпуска. Контролируется проверка `end_date >= start_date`. Возвращает измененный объект.
+- **Удалить**: Принимает `id` (int). Осуществляет мягкое удаление (флаг `is_active = False`). Возвращает `True / False` (bool).
+- **Получить список**: Фильтрует по `employee` и `is_active=True`. Возвращает список записей отпусков.
+
+---
+
+### 9. Логирование больничных (`sick_leaves`)
+
+**Информация, требуемая для создания**
+
+
+
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `employee` | ID связанного сотрудника | Да | int | должен существовать | – |
+| `start_date` | Дата начала больничного | Да | date | – | – |
+| `end_date` | Дата окончания больничного | Да | date | проверка end_date >= start_date | – |
+| `diagnosis` | Текст диагноза | Да | text | – | – |
+
+**Уникальные комбинации:** отсутствуют
+
+**Информация при успешном создании / Получить по ID / Изменить / Получить список**
+
+
+
+| Параметр | Тип |
+|----------|-----|
+| `id` | int |
+| `employee` | int |
+| `start_date` | date |
+| `end_date` | date |
+| `diagnosis` | text |
+| `is_active` | boolean |
+
+- **Изменить**: Принимает `id` (int) и обновляемые поля дат или диагноза. Контролируется проверка `end_date >= start_date`. Возвращает измененный объект.
+- **Удалить**: Принимает `id` (int). Осуществляет мягкое удаление (флаг `is_active = False`). Возвращает `True / False` (bool).
+- **Получить список**: Фильтрует по `employee` и `is_active=True`. Возвращает список записей больничных.
+
+---
+
+## ER-диаграмма
+
+```mermaid
+erDiagram
+    employees {
+        int id PK
+        int user_id UK
+        date hire_date
+        string status
+        boolean is_active
+        datetime updated_at
+    }
+    positions {
+        int id PK
+        string title
+        text description
+    }
+    employee_positions {
+        int id PK
+        int employee FK
+        int position FK
+        date start_date
+        date end_date
+        float load_factor
+    }
+    vacations {
+        int id PK
+        int employee FK
+        date start_date
+        date end_date
+        string type
+        boolean is_active
+    }
+    sick_leaves {
+        int id PK
+        int employee FK
+        date start_date
+        date end_date
+        text diagnosis
+        boolean is_active
+    }
+
+    employees ||--o{ employee_positions : "employee_positions.employee -> employees.id"
+    positions ||--o{ employee_positions : "employee_positions.position -> positions.id"
+    employees ||--o{ vacations : "vacations.employee -> employees.id"
