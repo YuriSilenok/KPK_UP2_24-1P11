@@ -20,7 +20,7 @@
 
 | Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
 |----------|-----------|----------------|-----|-------------|-----------------------|
-| `user_id` | ID сотрудника из Profile Service | Да | int | уникальный (UK) | – |
+| `user_id` | ID сотрудника из Profile Service | Да | int | уникальный | – |
 | `hire_date` | Дата найма | Да | date | не раньше 1900-01-01 | – |
 | `status` | Текущий статус | Нет | string | active / on_vacation / sick_leave / fired | `'active'` |
 
@@ -29,8 +29,8 @@
 
 | Параметр | Пояснение | Тип |
 |----------|-----------|-----|
-| `id` | Внутренний ID записи (PK) | int |
-| `user_id` | ID из Profile Service (UK) | int |
+| `id` | Внутренний ID записи | int |
+| `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
 | `updated_at` | Дата и время создания/обновления | datetime |
@@ -72,8 +72,8 @@
 
 | Параметр | Пояснение | Тип |
 |----------|-----------|-----|
-| `id` | Внутренний ID записи (PK) | int |
-| `user_id` | ID из Profile Service (UK) | int |
+| `id` | Внутренний ID записи | int |
+| `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
 | `updated_at` | Дата и время последнего обновления | datetime |
@@ -86,15 +86,15 @@
 **Параметры для получения списка**
 
 
-| Параметр | Пояснение | Тип | Описание |
-|----------|-----------|-----|-----------|
-| `user_id` | ID сотрудника | int | Точное совпадение |
-| `status` | Статус | string | Точное совпадение |
-| `position_id` | Должность | int | Фильтрация через транзитивную таблицу `employee_positions` |
-| `hire_date_from` | Дата найма от | date | Фильтрация по диапазону (`>=`) |
-| `hire_date_to` | Дата найма до | date | Фильтрация по диапазону (`<=`) |
-| `limit` | Лимит | int | Максимум записей (default 100) |
-| `offset` | Смещение | int | Для пагинации |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| `user_id` | ID сотрудника | Нет | int | точное совпадение | – |
+| `status` | Статус | Нет | string | точное совпадение | – |
+| `position_id` | Должность | Нет | int | фильтрация через транзитивную таблицу | – |
+| `hire_date_from` | Дата найма от | Нет | date | диапазон (`>=`) | – |
+| `hire_date_to` | Дата найма до | Нет | date | диапазон (`<=`) | – |
+| `limit` | Лимит | Нет | int | максимум записей | `100` |
+| `offset` | Смещение | Нет | int | для пагинации | – |
 
 **Информация, возвращаемая в виде списка сотрудников** (каждый элемент)
 
@@ -105,68 +105,66 @@
 | `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
+| `position_ids`| Список ID должностей сотрудника (для прозрачности фильтрации) | list |
 
 ---
 
-## ER-диаграмма (Синхронизирована с моделями)
+## ER-диаграмма
 
 ```mermaid
 erDiagram
     employees {
         int id PK
-        int user_id UK "NOT NULL"
-        date hire_date "NOT NULL"
-        string status "NOT NULL"
-        boolean is_active "DEFAULT true"
-        datetime updated_at "NOT NULL"
+        int user_id FK
+        date hire_date
+        string status
+        boolean is_active
+        datetime updated_at
     }
     positions {
         int id PK
-        string title "NOT NULL"
-        text description "NOT NULL"
+        string title
+        text description
     }
     employee_positions {
         int id PK
-        int employee_id FK "NOT NULL"
-        int position_id FK "NOT NULL"
-        date start_date "NOT NULL"
-        date end_date "NOT NULL"
-        float load_factor "NOT NULL"
+        int employee_id FK
+        int position_id FK
+        date start_date
+        date end_date
+        float load_factor
     }
     vacations {
         int id PK
-        int employee_id FK "NOT NULL"
-        date start_date "NOT NULL"
-        date end_date "NOT NULL"
-        string type "NOT NULL"
+        int employee_id FK
+        date start_date
+        date end_date
+        string type
     }
     sick_leaves {
         int id PK
-        int employee_id FK "NOT NULL"
-        date start_date "NOT NULL"
-        date end_date "NOT NULL"
-        text diagnosis "NOT NULL"
+        int employee_id FK
+        date start_date
+        date end_date
+        text diagnosis
     }
 
-    employees ||--o{ employee_positions : "has (ON DELETE CASCADE)"
-    positions ||--o{ employee_positions : "assigned_to (ON DELETE CASCADE)"
-    employees ||--o{ vacations : "takes (ON DELETE CASCADE)"
-    employees ||--o{ sick_leaves : "goes_on (ON DELETE CASCADE)"
+    employees ||--o{ employee_positions : "has"
+    positions ||--o{ employee_positions : "assigned_to"
+    employees ||--o{ vacations : "takes"
+    employees ||--o{ sick_leaves : "goes_on"
 ```
 
-### Описание таблиц и ограничений БД
+### Описание формирования сложных структур и связей
 
-1. **Таблица `employees` (Сотрудники)**
-   - Поле `user_id` логически является уникальным внешним ключом (`UK`), ссылающимся на стороннюю сущность в *Profile Service*. Так как внешняя база физически недоступна для контроля ограничений целостности, поле оформлено в локальной схеме как `unique=True` (`UK`).
-   - Поле `is_active` отвечает за мягкое удаление.
-   - Поле `status` имеет ограничение на уровне кода на вхождение в список `['active', 'on_vacation', 'sick_leave', 'fired']`. По умолчанию при создании в БД через API (если не передано явно) присваивается значение `'active'`.
+1. **Формирование параметра `positions` в `get_employee`**
+   Сложная структура списка должностей формируется на основе объединения (JOIN) трех таблиц. Из таблицы `employee_positions` извлекаются периоды работы (`start_date`, `end_date`) и ставка (`load_factor`) для конкретного `employee_id`. Название должности (`position_title`) подтягивается из связанной таблицы `positions` по ключу `position_id`.
 
-2. **Таблица `positions` (Должности)**
-   - Справочник доступных должностей компании. Ограничение длины строки `title` составляет 100 символов.
+2. **Правила удаления и каскадность**
+   Для всех зависимых сущностей (`employee_positions`, `vacations`, `sick_leaves`) настроено каскадное удаление на уровне базы данных (`ON DELETE CASCADE`). При физическом удалении записи сотрудника из таблицы `employees` или должности из таблицы `positions`, все связанные с ними исторические данные зачищаются автоматически.
 
-3. **Таблица `employee_positions` (Связи сотрудников и должностей)**
-   - Транзитивная сущность для реализации связи «многие-ко-многим». Поле `load_factor` хранит число с плавающей точкой в стандартном формате IEEE 754 (точность `float` в Python/SQLite).
-   - Заданы правила каскадного удаления: при физическом удалении профиля сотрудника или должности из системы, соответствующие связи зачищаются автоматически (`ON DELETE CASCADE`).
+3. **Связь с внешними сервисами**
+   Поле `user_id` в таблице `employees` является внешним ключом (`FK`), указывающим на идентификатор пользователя в независимом внешнем микросервисе *Profile Service*.
 
-4. **Таблицы `vacations` и `sick_leaves` (Отпуска и Больничные)**
-   - Относятся к сотруднику как один-ко-многим. Не содержат избыточных флагов удаления, так как жизненный цикл записей полностью зависит от родительской сущности `employees` и очищается каскадно (`ON DELETE CASCADE`). Все поля имеют ограничение `NOT NULL`.
+4. **Формат дробных чисел**
+   Поле `load_factor` в таблице `employee_positions` имеет тип `float` и хранит ставку сотрудника на должности с точностью до двух знаков после запятой (например, `0.5`, `1.0`).
