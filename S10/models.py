@@ -17,6 +17,7 @@ class Employee(BaseModel):
     hire_date = DateField(null=False)
     status = CharField(max_length=20, default='active', null=False) 
     is_active = BooleanField(default=True)
+    # Описано в спецификации doc.md (Проверка models.py, пункт 4)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
@@ -31,6 +32,25 @@ class Employee(BaseModel):
             
         self.updated_at = datetime.datetime.now()
         return super().save(*args, **kwargs)
+
+    @classmethod
+    def filter_employees(cls, user_id=None, status=None, position_id=None, hire_date_from=None, hire_date_to=None):
+        """Обеспечивает комплексную фильтрацию по ТЗ (Проверка models.py, пункт 3)"""
+        query = cls.select()
+        
+        if position_id is not None:
+            query = query.join(EmployeePosition).where(EmployeePosition.position == position_id)
+            
+        if user_id is not None:
+            query = query.where(cls.user_id == user_id)
+        if status is not None:
+            query = query.where(cls.status == status)
+        if hire_date_from is not None:
+            query = query.where(cls.hire_date >= hire_date_from)
+        if hire_date_to is not None:
+            query = query.where(cls.hire_date <= hire_date_to)
+            
+        return query
 
 class Position(BaseModel):
     class Meta:
@@ -63,7 +83,8 @@ class Vacation(BaseModel):
         db_table = "vacations"
 
     id = AutoField()
-    employee_id = IntegerField(null=False)
+    # Переведено в ForeignKeyField согласно логике ТЗ (Пункт 1)
+    employee = ForeignKeyField(Employee, backref='vacations', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
     vacation_type = CharField(max_length=255, null=False)
@@ -81,9 +102,11 @@ class SickLeave(BaseModel):
         db_table = "sick_leaves"
 
     id = AutoField()
-    employee_id = IntegerField(null=False)
+    # Переведено в ForeignKeyField согласно логике ТЗ (Пункт 2)
+    employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
+    # Описано в спецификации doc.md (Пункт 5)
     document_number = CharField(max_length=255, null=False)
     is_active = BooleanField(default=True)
 
