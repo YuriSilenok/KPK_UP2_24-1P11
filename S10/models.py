@@ -3,15 +3,6 @@ from peewee import *
 
 db = SqliteDatabase('employee_status.db')
 
-# ---------- Валидаторы (Оставлены только базовые ограничения типов) ----------
-def validate_positive(value):
-    if value <= 0:
-        raise ValueError("user_id должен быть положительным целым числом")
-
-def validate_hire_date(value):
-    if value < datetime.date(1900, 1, 1):
-        raise ValueError("Дата найма не может быть раньше 1900-01-01")
-
 # ---------- Модели ----------
 class BaseModel(Model):
     class Meta:
@@ -22,7 +13,6 @@ class Employee(BaseModel):
         db_table = "employees"
 
     id = AutoField()
-    # Замечание 5: unique=True оставлен, так как один user_id имеет строго одну статусную запись
     user_id = IntegerField(unique=True, null=False) 
     hire_date = DateField(null=False)
     status = CharField(max_length=20, default='active', null=False) 
@@ -30,9 +20,11 @@ class Employee(BaseModel):
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
-        """Валидация данных перед записью в БД"""
-        validate_positive(self.user_id)
-        validate_hire_date(self.hire_date)
+        """Валидация данных перед записью в БД (Замечание 6)"""
+        if self.user_id <= 0:
+            raise ValueError("user_id должен быть положительным целым числом")
+        if self.hire_date < datetime.date(1900, 1, 1):
+            raise ValueError("Дата найма не может быть раньше 1900-01-01")
         
         allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
         if self.status not in allowed_statuses:
@@ -41,12 +33,11 @@ class Employee(BaseModel):
         self.updated_at = datetime.datetime.now()
         return super().save(*args, **kwargs)
 
-    # Замечание 4: Добавлено явное свойство для гарантированного формирования структуры positions
     @property
     def positions(self):
-        """Формирует сложную структуру должностей для get_employee API"""
+        """Формирует сложную структуру должностей для API (Замечание 4)"""
         result = []
-        # Замечание 3: Логика соединения таблиц через ForeignKeyField
+        # Логика соединения таблиц (Замечание 3)
         query = (EmployeePosition
                  .select(EmployeePosition, Position)
                  .join(Position)
@@ -68,6 +59,11 @@ class Position(BaseModel):
     title = CharField(max_length=100, null=False)
     description = TextField(null=False)
 
+    def save(self, *args, **kwargs):
+        if not self.title or not (1 <= len(str(self.title)) <= 100):
+            raise ValueError("Длина названия должности должна быть от 1 до 100 символов")
+        return super().save(*args, **kwargs)
+
 class EmployeePosition(BaseModel):
     class Meta:
         db_table = "employee_positions"
@@ -79,6 +75,11 @@ class EmployeePosition(BaseModel):
     end_date = DateField(null=True)
     load_factor = FloatField(null=False)
 
+    def save(self, *args, **kwargs):
+        if self.end_date is not None and self.end_date < self.start_date:
+            raise ValueError("Дата окончания должности не может быть раньше даты начала")
+        return super().save(*args, **kwargs)
+
 class Vacation(BaseModel):
     class Meta:
         db_table = "vacations"
@@ -88,6 +89,11 @@ class Vacation(BaseModel):
     start_date = DateField(null=False)
     end_date = DateField(null=False)
     type = CharField(max_length=50, null=False)
+
+    def save(self, *args, **kwargs):
+        if self.end_date < self.start_date:
+            raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
+        return super().save(*args, **kwargs)
 
 class SickLeave(BaseModel):
     class Meta:
@@ -99,12 +105,16 @@ class SickLeave(BaseModel):
     end_date = DateField(null=False)
     diagnosis = TextField(null=False)
 
+    def save(self, *args, **kwargs):
+        if self.end_date < self.start_date:
+            raise ValueError("Дата окончания больничного не может быть раньше даты начала")
+        return super().save(*args, **kwargs)
+
 def init_db():
     db.connect()
-    # Восстановлены все таблицы согласно ERD и замечанию 7
     db.create_tables([Employee, Position, EmployeePosition, Vacation, SickLeave], safe=True)
     db.close()
 
 if __name__ == '__main__':
     init_db()
-    print("Database initialized. All tables created successfully.")
+    print("Database initialized successfully.")
