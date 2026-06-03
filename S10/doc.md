@@ -22,6 +22,8 @@
 | `hire_date` | Дата найма | Да | date | не раньше 1900-01-01 | – |
 | `status` | Текущий статус | Нет | string | active / on_vacation / sick_leave / fired | `'active'` |
 
+**Уникальные комбинации:** `user_id` (глобально уникален)
+
 **Информация, возвращаемая при успешном создании**
 
 
@@ -62,6 +64,8 @@
 
 > Метод производит логическое (мягкое) удаление путем перевода флага `is_active` в `False`. Физического зачищения строк в БД не происходит.
 
+**Возвращаемое значение:** `True / False` (bool)
+
 ---
 
 ### 4. Получение сотрудника по ID (`get_employee`)
@@ -77,7 +81,9 @@
 | `status` | Текущий статус | string |
 | `is_active` | Статус активности записи | boolean |
 | `updated_at` | Дата и время последнего обновления | datetime |
-| `positions` | Список должностей со структурой `[{"position_title": string, "start_date": string, "end_date": string, "load_factor": float}]` | list |
+| `positions` | Список должностей (Вычисляемое свойство ORM-модели на основе JOIN) | list |
+
+*Примечание:* Параметр `positions` не является физическим столбцом таблицы `employees`. Это динамическое вычисляемое свойство (property) уровня приложения, агрегирующее данные из связанных таблиц `employee_positions` и `positions`. Structure: `[{"position_title": string, "start_date": string, "end_date": string, "load_factor": float}]`.
 
 ---
 
@@ -105,7 +111,32 @@
 | `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
-| `is_active` | Статус активности записи (учёт мягкого удаления) | boolean |
+| `is_active` | Статус активности записи | boolean |
+| `position_id` | Идентификатор связанной должности (из транзитивной таблицы) | int |
+
+---
+
+## Дополнительное описание API сопутствующих таблиц
+
+### 6. Управление должностями (`positions`)
+Позволяет просматривать базовые справочные данные должностей, используемые транзитивной таблицей.
+- **Входные данные:** `id` (int), `title` (string), `description` (text).
+- **Выходные данные:** Полный объект должности.
+
+### 7. Управление назначениями (`employee_positions`)
+Обеспечивает связь сотрудников с должностями для построения сложных структур.
+- **Входные данные:** `employee_id` (int), `position_id` (int), `start_date` (date), `end_date` (date), `load_factor` (float).
+- **Выходные данные:** Объект связи параметров назначения.
+
+### 8. Логирование отпусков (`vacations`)
+Учет периодов отдыха, привязанных к сотруднику.
+- **Входные данные:** `employee_id` (int), `start_date` (date), `end_date` (date), `type` (string).
+- **Выходные данные:** Запись лога отпуска.
+
+### 9. Логирование больничных (`sick_leaves`)
+Учет периодов нетрудоспособности, привязанных к сотруднику.
+- **Входные данные:** `employee_id` (int), `start_date` (date), `end_date` (date), `diagnosis` (text).
+- **Выходные данные:** Запись лога больничного листа.
 
 ---
 
@@ -149,28 +180,15 @@ erDiagram
         text diagnosis "NOT NULL"
     }
 
-    employees ||--o{ employee_positions : "has"
-    positions ||--o{ employee_positions : "assigned_to"
-    employees ||--o{ vacations : "takes"
-    employees ||--o{ sick_leaves : "goes_on"
+    employees ||--o{ employee_positions : "employee_positions.employee_id -> employees.id"
+    positions ||--o{ employee_positions : "employee_positions.position_id -> positions.id"
+    employees ||--o{ vacations : "vacations.employee_id -> employees.id"
+    employees ||--o{ sick_leaves : "sick_leaves.employee_id -> employees.id"
 ```
 
-### Архитектурные пояснения к схемам и методам
-
-1. **Реляционные связи со сторонними сервисами**
-   Сущность `employees` связана с внешней таблицей `profiles` сервиса **Profile Service** отношением один-к-одному. Связывание происходит по внешнему ключу: `employees.user_id` ➔ `profiles.id`. Данная связь является логической межсервисной и не поддерживается на уровне ограничений СУБД SQLite.
-
-2. **Внутренние связи и каскадность**
-   - **`employees` ➔ `employee_positions`**: по полям `employees.id` (PK) и `employee_positions.employee_id` (FK), один-ко-многим.
-   - **`positions` ➔ `employee_positions`**: по полям `positions.id` (PK) и `employee_positions.position_id` (FK), один-ко-многим.
-   - **`employees` ➔ `vacations`**: по полям `employees.id` (PK) и `vacations.employee_id` (FK), один-ко-многим.
-   - **`employees` ➔ `sick_leaves`**: по полям `employees.id` (PK) and `sick_leaves.employee_id` (FK), один-ко-многим.
-
-3. **Формирование сложных структур**
-   Параметр `positions` в ответе `get_employee` формируется с помощью выполнения SQL JOIN-запроса между промежуточной таблицей `employee_positions` (фильтрация по `employee_id`) и справочником `positions` для получения актуальных названий должностей (`title`). На уровне ORM-модели за это отвечает встроенное вычисляемое свойство `.positions`.
-
-4. **Согласование каскадного и мягкого удаления**
-   Мягкое удаление сущности `Employee` изменяет флаг `is_active = False` и не инициирует физическое удаление данных. Ограничение базы данных `ON DELETE CASCADE` для внешних ключей заложено в схему как защитный механизм на случай принудительной очистки мастер-данных (например, при полном физическом удалении профиля пользователя администратором).
-
-5. **Отсутствие CRUD для дополнительных таблиц**
-   Таблицы `vacations` и `sick_leaves` являются вспомогательными историческими логами. Они не имеют собственных независимых конечных точек API, так как записи в них создаются/изменяются автоматически в рамках единой транзакции при обновлении оперативного статуса сотрудника через метод `update_employee`.
+### Список реляционных связей
+- Связь между таблицами **`employees`** и **`employee_positions`** осуществляется по полям: `employee_positions.employee_id` (int, FK) ➔ `employees.id` (int, PK).
+- Связь между таблицами **`positions`** и **`employee_positions`** осуществляется по полям: `employee_positions.position_id` (int, FK) ➔ `positions.id` (int, PK).
+- Связь между таблицами **`employees`** и **`vacations`** осуществляется по полям: `vacations.employee_id` (int, FK) ➔ `employees.id` (int, PK).
+- Связь между таблицами **`employees`** и **`sick_leaves`** осуществляется по полям: `sick_leaves.employee_id` (int, FK) ➔ `employees.id` (int, PK).
+- Внешняя логическая связь с **Profile Service**: `employees.user_id` (int, FK) ➔ `profiles.id` (int, PK) внешнего сервиса.
