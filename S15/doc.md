@@ -97,8 +97,8 @@
 erDiagram
     LoadAssignment {
         int id PK
-        int teacher_id
-        int discipline_id
-        int group_id
+        int teacher_id FK
+        int discipline_id FK
+        int group_id FK
         bool is_active
     }
