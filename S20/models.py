@@ -15,7 +15,7 @@ class AcademicPeriod(BaseModel):
     is_semester = BooleanField(default=False)
     is_module = BooleanField(default=False)
     period_type = CharField(max_length=10, null=False)
-    parent_period_id = IntegerField(null=True, default=0)
+    parent_period_id = ForeignKeyField(null=True, default=0)
     is_active = BooleanField(default=True)
 
     class Meta:
@@ -69,4 +69,3 @@ def init_db():
 if __name__ == "__main__":
     init_db()
     print("Database ready.")
-    
