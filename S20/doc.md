@@ -119,11 +119,12 @@
 erDiagram
     ACADEMIC_PERIOD {
         INT ID PK
-        STRING NAME "INDEX: name_contains"
+        STRING NAME 
         DATE START_DATE
         DATE END_DATE
         STRING PERIOD_TYPE
-        INT PARENT_PERIOD_ID
+        INT PARENT_PERIOD_ID FK
         BOOLEAN IS_ACTIVE
     }
-```
+
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "содержит дочерние периоды"
