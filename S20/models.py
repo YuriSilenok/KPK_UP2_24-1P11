@@ -14,8 +14,7 @@ class AcademicPeriod(BaseModel):
     end_date = DateField(null=False)
     is_semester = BooleanField(default=False)
     is_module = BooleanField(default=False)
-    period_type = CharField(max_length=10, null=False)
-    parent_period_id = ForeignKeyField('self', null=True, backref='children')
+    parent_period_id = OneToOneField('self', null=False, backref='child')
     is_active = BooleanField(default=True)
 
     class Meta:
@@ -25,7 +24,6 @@ class AcademicPeriod(BaseModel):
         self.save()
         return True
 
-        }
 def init_db():
     db.connect()
     db.create_tables([AcademicPeriod])
