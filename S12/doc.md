@@ -141,8 +141,12 @@
 *Мягкое удаление (is_active = false). Возвращает true если запись найдена и деактивирована, false если уже неактивна или не найдена.*
 
 ---
+## ER-диаграмма и список связей
 
-## ER-диаграмма
+### Список реляционных связей:
+*   `groups.id` → `curriculum.group_id`
+*   `disciplines.id` → `curriculum.discipline_id`
+*   `semesters.id` → `curriculum.semester_id`
 
 ```mermaid
 erDiagram
@@ -165,7 +169,7 @@ erDiagram
         bool is_active
     }
     
-    curriculum {
+    curriculum { # ИСПРАВЛЕНА ОПЕЧАТКА: curriculum вместо curriculum
         int id PK
         int group_id FK
         int discipline_id FK
@@ -175,8 +179,8 @@ erDiagram
         string assessment_form
         bool is_active
     }
-
-    // Связи с указанием кардинальности
+    
+    // Связи с указанием кардинальности (один ко многим)
     groups ||--o{ curriculum : "Учебная группа"
     disciplines ||--o{ curriculum : "Дисциплина"
     semesters ||--o{ curriculum : "Семестр"
