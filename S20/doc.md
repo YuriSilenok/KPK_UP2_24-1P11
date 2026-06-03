@@ -116,21 +116,16 @@
 
 ```mermaid
 erDiagram
-    school_year {
-        INT academic_year PK
-        DATE start_date
-        DATE end_date
+    ACADEMIC_PERIOD {
+        int id PK
+        string name
+        string academic_year
+        date start_date
+        date end_date
+        string period_type
+        int parent_period_id FK
+        boolean is_active
     }
 
-    academic_period {
-        INT id PK
-        VARCHAR name
-        INT academic_year FK
-        VARCHAR period_type
-        INT parent_period_id FK
-        BOOLEAN is_active
-    }
-
-    school_year ||--o{ academic_period : "содержит"
-    academic_period ||--o{ academic_period : "parent"
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "parent_period_id → id"
 ```
