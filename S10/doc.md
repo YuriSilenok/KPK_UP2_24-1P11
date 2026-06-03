@@ -1,19 +1,19 @@
 # Сервис статуса сотрудника (Employee Status Service) – Вариант 10
 
 ## Список функций
-- `create_employee` – создание записи о сотруднике (только статусная информация)
+- `create_employee` – создание записи о статусе сотрудника
 - `update_employee` – изменение статусной информации сотрудника
-- `delete_employee` – мягкое удаление (is_active = False)
-- `get_employee` – получение сотрудника по ID
+- `delete_employee` – мягкое удаление сотрудника (is_active = False)
+- `get_employee` – получение статусной информации сотрудника по ID
 - `list_employees` – получение списка сотрудников с фильтрацией
 
-> Примечание: ФИО, контакты и другие персональные данные хранятся в **Profile Service**. В данном сервисе используется `user_id` для связи с профилем.
+> Примечание: ФИО, контакты, должности, отпуска и больничные листы хранятся в смежных микросервисах компании. Данный сервис является мастер-системой исключительно для оперативного статуса занятости сотрудника и использует `user_id` для интеграции.
 
 ---
 
 ## Сущность «Сотрудник»
 
-### 1. Создание сотрудника
+### 1. Создание сотрудника (`create_employee`)
 
 **Информация, требуемая для создания сотрудника**
 
@@ -33,7 +33,7 @@
 | `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
-| `updated_at` | Дата и время создания/обновления | datetime |
+| `updated_at` | Дата и время создания | datetime |
 
 ---
 
@@ -61,7 +61,7 @@
 
 ### 3. Удаление сотрудника по ID (`delete_employee`)
 
-> Метод производит логическое (мягкое) удаление. Меняет значение флага `is_active` на `False`. Физического удаления записи из базы данных не происходит. Возвращает `True` при успешном изменении статуса, иначе `False`.
+> Метод производит логическое (мягкое) удаление. Изменяет значение флага `is_active` на `False`. Физического удаления записи из базы данных не происходит, данные не зачищаются. Возвращает `True` при успешном изменении, иначе `False`.
 
 ---
 
@@ -76,8 +76,8 @@
 | `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
+| `is_active` | Флаг активности аккаунта | boolean |
 | `updated_at` | Дата и время последнего обновления | datetime |
-| `positions` | Список должностей со структурой `[{"position_title": string, "start_date": string, "end_date": string, "load_factor": float}]` | list |
 
 ---
 
@@ -90,11 +90,10 @@
 |----------|-----------|----------------|-----|-------------|-----------------------|
 | `user_id` | ID сотрудника | Нет | int | точное совпадение | – |
 | `status` | Статус | Нет | string | точное совпадение | – |
-| `position_id` | Должность | Нет | int | фильтрация через транзитивную таблицу | – |
 | `hire_date_from` | Дата найма от | Нет | date | диапазон (`>=`) | – |
 | `hire_date_to` | Дата найма до | Нет | date | диапазон (`<=`) | – |
-| `limit` | Лимит | Нет | int | максимум записей | `100` |
-| `offset` | Смещение | Нет | int | для пагинации | – |
+| `limit` | Лимит записей | Нет | int | пагинация | `100` |
+| `offset` | Смещение | Нет | int | пагинация | – |
 
 **Информация, возвращаемая в виде списка сотрудников** (каждый элемент)
 
@@ -105,7 +104,6 @@
 | `user_id` | ID из Profile Service | int |
 | `hire_date` | Дата найма | date |
 | `status` | Текущий статус | string |
-| `position_ids`| Список ID должностей сотрудника (для прозрачности фильтрации) | list |
 
 ---
 
@@ -115,56 +113,14 @@
 erDiagram
     employees {
         int id PK
-        int user_id FK
-        date hire_date
-        string status
-        boolean is_active
-        datetime updated_at
+        int user_id UK "NOT NULL"
+        date hire_date "NOT NULL"
+        string status "NOT NULL"
+        boolean is_active "DEFAULT true"
+        datetime updated_at "NOT NULL"
     }
-    positions {
-        int id PK
-        string title
-        text description
-    }
-    employee_positions {
-        int id PK
-        int employee_id FK
-        int position_id FK
-        date start_date
-        date end_date
-        float load_factor
-    }
-    vacations {
-        int id PK
-        int employee_id FK
-        date start_date
-        date end_date
-        string type
-    }
-    sick_leaves {
-        int id PK
-        int employee_id FK
-        date start_date
-        date end_date
-        text diagnosis
-    }
-
-    employees ||--o{ employee_positions : "has"
-    positions ||--o{ employee_positions : "assigned_to"
-    employees ||--o{ vacations : "takes"
-    employees ||--o{ sick_leaves : "goes_on"
 ```
 
-### Описание формирования сложных структур и связей
-
-1. **Формирование параметра `positions` в `get_employee`**
-   Сложная структура списка должностей формируется на основе объединения (JOIN) трех таблиц. Из таблицы `employee_positions` извлекаются периоды работы (`start_date`, `end_date`) и ставка (`load_factor`) для конкретного `employee_id`. Название должности (`position_title`) подтягивается из связанной таблицы `positions` по ключу `position_id`.
-
-2. **Правила удаления и каскадность**
-   Для всех зависимых сущностей (`employee_positions`, `vacations`, `sick_leaves`) настроено каскадное удаление на уровне базы данных (`ON DELETE CASCADE`). При физическом удалении записи сотрудника из таблицы `employees` или должности из таблицы `positions`, все связанные с ними исторические данные зачищаются автоматически.
-
-3. **Связь с внешними сервисами**
-   Поле `user_id` в таблице `employees` является внешним ключом (`FK`), указывающим на идентификатор пользователя в независимом внешнем микросервисе *Profile Service*.
-
-4. **Формат дробных чисел**
-   Поле `load_factor` в таблице `employee_positions` имеет тип `float` и хранит ставку сотрудника на должности с точностью до двух знаков после запятой (например, `0.5`, `1.0`).
+### Описание ограничений БД
+1. **Таблица `employees` (Сотрудники)** — единственная таблица сервиса. Хранит исключительно статусную информацию.
+2. **Мягкое удаление** реализуется через контролируемый флаг `is_active`. Физическое каскадное зачищение данных отсутствует.
