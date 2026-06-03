@@ -1,12 +1,3 @@
-
-
-**Связи:**
-- teacher_id ссылается на Teacher.id (внешний сервис)
-- discipline_id ссылается на Discipline.id (внешний сервис)
-- group_id ссылается на Group.id (внешний сервис)
-
-**Транзитивные таблицы:** отсутствуют
-
 ## API Description
 
 ### 1. Add LoadAssignment
