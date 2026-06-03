@@ -1,340 +1,115 @@
-# Вариант 10 — Сервис статуса сотрудника (Employee Status Service)
-
-## Список функций
-- `create_employee` – создание записи о сотруднике
-- `update_employee` – изменение статусной информации сотрудника
-- `delete_employee` – мягкое удаление (is_active = False)
-- `get_employee` – получение сотрудника по ID
-- `list_employees` – получение списка сотрудников с фильтрацией
-- Управление справочником должностей (`positions`) и историей назначений (`employee_positions`)
-- Ведение логов причин отсутствия сотрудников по отпускам (`vacations`) и больничным (`sick_leaves`)
-
-> Важно: сервис не должен хранить сведения, которые точно будут храниться в других сервисах. ФИО, контакты и персональные данные хранятся в Profile Service. В данном сервисе используется `user_id` (IntegerField) для связи.
-
----
-
-## Сущность «Сотрудник»
-
-### 1. Добавить сущность (`create_employee`)
-
-**Информация для создания (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| `user_id` | ID сотрудника из Profile Service | Да | int | уникальный, положительное целое число (>0) | – |
-| `hire_date` | Дата найма | Да | date | диапазон: не раньше 1900-01-01 | – |
-| `status` | Текущий статус | Нет | string | допустимые: active / on_vacation / sick_leave / fired | `'active'` |
-
-**Уникальные комбинации параметров (если есть) — перечислить:** `user_id`
-
-**Информация при успешном создании (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `user_id` | int |
-| `hire_date` | date |
-| `status` | string |
-
----
-
-### 2. Изменить сущность по ID (`update_employee`)
-
-**Информация для изменения (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
-|----------|-----------|----------------|-----|-------------|
-| `hire_date` | Дата найма | Нет | date | диапазон: не раньше 1900-01-01 |
-| `status` | Статус | Нет | string | допустимые: active / on_vacation / sick_leave / fired |
-
-**Информация при успешном изменении (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `user_id` | int |
-| `status` | string |
-
----
-
-### 3. Удалить сущность по ID (`delete_employee`)
-
-- Удаление логическое (запись не удаляется из БД физически).
-- В таблице присутствует булево поле `is_active` (по умолчанию `True`).
-- При удалении `is_active` устанавливается в `False`.
-- Возвращаемое значение: `true` (если запись найдена и помечена удалённой), иначе `false`.
-
----
-
-### 4. Получить сущность по ID (`get_employee`)
-
-**Возвращаемая информация (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `id` | Внутренний ID записи | int |
-| `user_id` | ID из Profile Service | int |
-| `hire_date` | Дата найма | date |
-| `status` | Текущий статус | string |
-
----
-
-### 5. Получить список сущностей по заданным параметрам (`list_employees`)
-
-**Параметры запроса (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `user_id` | ID сотрудника для точного совпадения | int |
-| `status` | Статус для точного совпадения | string |
-| `position_id` | Должность для фильтрации | int |
-| `hire_date_from` | Дата найма от | date |
-| `hire_date_to` | Дата найма до | date |
-| `limit` | Лимит выборки | int |
-| `offset` | Смещение для пагинации | int |
-
-**Возвращаемый список (таблица с полями сущности):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `user_id` | int |
-| `hire_date` | date |
-| `status` | string |
-
----
-
-## Дополнительное описание API сопутствующих таблиц
-
-### 6. Таблица Должностей (`positions`)
-
-#### 6.1 Добавить должность
-**Информация для создания (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| `title` | Название должности | Да | string | макс. 100 символов | – |
-| `description` | Описание | Да | text | – | – |
-
-**Уникальные комбинации параметров:** отсутствуют
-
-**Информация при успешном создании (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `title` | string |
-| `description` | text |
-
-#### 6.2 Изменить должность по ID
-**Информация для изменения (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
-|----------|-----------|----------------|-----|-------------|
-| `title` | Название должности | Нет | string | макс. 100 символов |
-| `description` | Описание | Нет | text | – |
-
-**Информация при успешном изменении (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `title` | string |
-| `description` | text |
-
-#### 6.3 Удалить должность по ID
-Реализует жесткое физическое удаление записи из БД. Возвращает `true / false`.
-
-#### 6.4 Получить должность по ID
-**Возвращаемая информация (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `id` | Первичный ключ | int |
-| `title` | Название должности | string |
-| `description` | Описание обязанностей | text |
-
-#### 6.5 Получить список должностей
-**Параметры запроса (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `limit` | Ограничение количества | int |
-| `offset` | Смещение | int |
-
-**Возвращаемый список (таблица с полями сущности):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `title` | string |
-| `description` | text |
-
----
-
-### 7. Транзитивная таблица назначений (`employee_positions`)
-
-#### 7.1 Добавить назначение
-**Информация для создания (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| `employee` | Связанный сотрудник | Да | int | FK к employees | – |
-| `position` | Связанная должность | Да | int | FK к positions | – |
-| `start_date` | Дата начала работы | Да | date | – | – |
-| `end_date` | Дата окончания работы | Нет | date | позже start_date | `null` |
-| `load_factor` | Ставка работы | Да | float | положительное | – |
-
-**Уникальные комбинации параметров:** отсутствуют
-
-**Информация при успешном создании (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `employee` | int |
-| `position` | int |
-| `start_date` | date |
-| `end_date` | date |
-| `load_factor` | float |
-
-#### 7.2 Изменить назначение по ID
-**Информация для изменения (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
-|----------|-----------|----------------|-----|-------------|
-| `end_date` | Дата окончания | Нет | date | позже start_date |
-| `load_factor` | Ставка работы | Нет | float | положительное |
-
-**Информация при успешном изменении (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `end_date` | date |
-| `load_factor` | float |
-
-#### 7.3 Удалить назначение по ID
-Реализует физическое удаление связи из БД. Возвращает `true / false`.
-
-#### 7.4 Получить назначение по ID
-**Возвращаемая информация (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `id` | Первичный ключ | int |
-| `employee` | Внешний ключ сотрудника | int |
-| `position` | Внешний ключ должности | int |
-| `start_date` | Дата начала | date |
-| `end_date` | Дата окончания | date |
-| `load_factor` | Ставка | float |
-
-#### 7.5 Получить список назначений
-**Параметры запроса (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `employee` | Фильтр по сотруднику | int |
-
-**Возвращаемый список (таблица с полями сущности):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `employee` | int |
-| `position` | int |
-| `start_date` | date |
-| `end_date` | date |
-| `load_factor` | float |
-
----
-
-### 8. Логирование отпусков (`vacations`)
-*Примечание:* Данная таблица хранит исключительно текстовые маркеры причин долгосрочного изменения статуса занятости сотрудника на `on_vacation` и не дублирует HR-модули комплексного учета рабочего времени.
-
-#### 8.1 Добавить отпуск
-**Информация для создания (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
-|----------|-----------|----------------|-----|-------------|-----------------------|
-| `employee` | Связанный сотрудник | Да | int | FK к employees | – |
-| `start_date` | Начало отпуска | Да | date | – | – |
-| `end_date` | Окончание отпуска | Да | date | позже start_date | – |
-| `type` | Вид отпуска | Да | string | макс. 50 символов | – |
-
-**Уникальные комбинации параметров:** отсутствуют
-
-**Информация при успешном создании (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `employee` | int |
-| `start_date` | date |
-| `end_date` | date |
-| `type` | string |
-
-#### 8.2 Изменить отпуск по ID
-**Информация для изменения (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
-|----------|-----------|----------------|-----|-------------|
-| `start_date` | Начало отпуска | Нет | date | – |
-| `end_date` | Окончание отпуска | Нет | date | позже start_date |
-| `type` | Вид отпуска | Нет | string | макс. 50 символов |
-
-**Информация при успешном изменении (таблица):**
-
-
-| Параметр (англ.) | Тип |
-|----------|-----|
-| `id` | int |
-| `start_date` | date |
-| `end_date` | date |
-| `type` | string |
-
-#### 8.3 Удалить отпуск по ID
-Реализует жесткое физическое удаление записи отпуска из БД. Возвращает `true / false`.
-
-#### 8.4 Получить отпуск по ID
-**Возвращаемая информация (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
-| `id` | Первичный ключ | int |
-| `employee` | Внешний ключ сотрудника | int |
-| `start_date` | Дата начала | date |
-| `end_date` | Дата окончания | date |
-| `type` | Тип отпуска | string |
-
-#### 8.5 Получить список отпусков
-**Параметры запроса (таблица):**
-
-
-| Параметр (англ.) | Пояснение | Тип |
-|----------|-----------|-----|
+import datetime
+from peewee import *
+
+db = SqliteDatabase('employee_status.db')
+
+# ---------- Модели ----------
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+class Employee(BaseModel):
+    class Meta:
+        db_table = "employees"
+
+    id = AutoField()
+    # Логическая связь со сторонним микросервисом Profile Service
+    user_id = IntegerField(unique=True, null=False) 
+    hire_date = DateField()
+    status = CharField(max_length=20, default='active') 
+    is_active = BooleanField(default=True)
+    updated_at = DateTimeField(default=datetime.datetime.now) 
+
+    def save(self, *args, **kwargs):
+        """Валидация данных перед записью в БД"""
+        if self.user_id <= 0:
+            raise ValueError("user_id должен быть положительным целым числом")
+        if self.hire_date and self.hire_date < datetime.date(1900, 1, 1):
+            raise ValueError("Дата найма не может быть раньше 1900-01-01")
+        
+        allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
+        if self.status not in allowed_statuses:
+            raise ValueError(f"Статус должен быть одним из: {', '.join(allowed_statuses)}")
+            
+        self.updated_at = datetime.datetime.now()
+        return super().save(*args, **kwargs)
+
+    @property
+    def positions(self):
+        """Свойство (property) уровня приложения для динамической агрегации должностей"""
+        result = []
+        query = (EmployeePosition
+                 .select(EmployeePosition, Position)
+                 .join(Position)
+                 .where(EmployeePosition.employee == self))
+        for ep in query:
+            result.append({
+                "position_title": ep.position.title,
+                "start_date": ep.start_date.isoformat(),
+                "end_date": ep.end_date.isoformat() if ep.end_date else None,
+                "load_factor": ep.load_factor
+            })
+        return result
+
+class Position(BaseModel):
+    class Meta:
+        db_table = "positions"
+
+    id = AutoField()
+    title = CharField(max_length=100, null=False)
+    description = TextField(null=True)
+
+class EmployeePosition(BaseModel):
+    class Meta:
+        db_table = "employee_positions"
+
+    id = AutoField()
+    employee = ForeignKeyField(Employee, backref='employee_positions_rel', on_delete='CASCADE', null=False)
+    position = ForeignKeyField(Position, backref='employee_positions_rel', on_delete='CASCADE', null=False)
+    start_date = DateField(null=False)
+    end_date = DateField(null=True)
+    load_factor = FloatField(null=False)
+
+    def save(self, *args, **kwargs):
+        if self.end_date is not None and self.end_date < self.start_date:
+            raise ValueError("Дата окончания должности не может быть раньше даты начала")
+        return super().save(*args, **kwargs)
+
+class Vacation(BaseModel):
+    class Meta:
+        db_table = "vacations"
+
+    id = AutoField()
+    employee = ForeignKeyField(Employee, backref='vacations', on_delete='CASCADE', null=False)
+    start_date = DateField(null=False)
+    end_date = DateField(null=False)
+    type = CharField(max_length=50, null=False)
+
+    def save(self, *args, **kwargs):
+        if self.end_date < self.start_date:
+            raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
+        return super().save(*args, **kwargs)
+
+class SickLeave(BaseModel):
+    class Meta:
+        db_table = "sick_leaves"
+
+    id = AutoField()
+    employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
+    start_date = DateField(null=False)
+    end_date = DateField(null=False)
+    diagnosis = TextField(null=True)
+
+    def save(self, *args, **kwargs):
+        if self.end_date < self.start_date:
+            raise ValueError("Дата окончания больничного не может быть раньше даты начала")
+        return super().save(*args, **kwargs)
+
+def init_db():
+    db.connect()
+    db.create_tables([Employee, Position, EmployeePosition, Vacation, SickLeave], safe=True)
+    db.close()
+
+if __name__ == '__main__':
+    init_db()
+    print("Database initialized successfully.")
