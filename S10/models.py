@@ -20,7 +20,7 @@ class Employee(BaseModel):
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
-        """Валидация данных перед записью в БД (Замечание 6)"""
+        """Валидация данных перед записью в БД"""
         if self.user_id <= 0:
             raise ValueError("user_id должен быть положительным целым числом")
         if self.hire_date < datetime.date(1900, 1, 1):
@@ -35,9 +35,8 @@ class Employee(BaseModel):
 
     @property
     def positions(self):
-        """Формирует сложную структуру должностей для API (Замечание 4)"""
+        """Вычисляемое свойство (property) для API, объединяющее таблицы"""
         result = []
-        # Логика соединения таблиц (Замечание 3)
         query = (EmployeePosition
                  .select(EmployeePosition, Position)
                  .join(Position)
