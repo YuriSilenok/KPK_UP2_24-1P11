@@ -47,42 +47,6 @@ def init_db():
         SickLeave
     ])
 
-
-erDiagram
-
-    Position {
-        int id PK
-        string name
-        boolean is_active
-    }
-
-    EmployeeStatus {
-        int id PK
-        int employee_id
-        int position_id FK
-        float rate
-        boolean is_part_time
-        date start_date
-        date end_date
-        boolean is_active
-    }
-
-    Vacation {
-        int id PK
-        int employee_id
-        date start_date
-        date end_date
-        string vacation_type
-        boolean is_active
-    }
-
-    SickLeave {
-        int id PK
-        int employee_id
-        date start_date
-        date end_date
-        string document_number
-        boolean is_active
-    }
-
-    Position ||--o{ EmployeeStatus : "id -> position_id"
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized successfully.")
