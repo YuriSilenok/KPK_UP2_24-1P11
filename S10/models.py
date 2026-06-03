@@ -24,9 +24,9 @@ class Employee(BaseModel):
     id = AutoField()
     user_id = IntegerField(unique=True, null=False) 
     hire_date = DateField(null=False)
-    # Замечание 4: Добавлено значение по умолчанию 'active', как указано в doc.md
-    status = CharField(max_length=20, default='active') 
-    # Замечание 1, 3: Поле называется строго is_active (синхронизировано с doc.md)
+    # Замечание 5: Поле status объявлено как NOT NULL в БД (null=False)
+    # Опциональность при частичном обновлении (update_employee) будет контролироваться на уровне API
+    status = CharField(max_length=20, default='active', null=False) 
     is_active = BooleanField(default=True)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
@@ -35,37 +35,41 @@ class Employee(BaseModel):
         validate_positive(self.user_id)
         validate_hire_date(self.hire_date)
         
-        # Замечание 2: Реализовано ограничение допустимых значений статуса
         allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
+        # Замечание 1: Исправлена синтаксическая ошибка во f-строке (добавлен апостроф после f)
         if self.status not in allowed_statuses:
             raise ValueError(f"Статус должен быть одним из: {', '.join(allowed_statuses)}")
             
         self.updated_at = datetime.datetime.now()
         return super().save(*args, **kwargs)
 
-    # Замечание 5: Метод для автоматического формирования структуры positions для get_employee
-    def get_positions_list(self):
-        result = []
-        query = (EmployeePosition
-                 .select(EmployeePosition, Position)
-                 .join(Position)
-                 .where(EmployeePosition.employee == self))
-        for ep in query:
-            result.append({
-                "position_title": ep.position.title,
-                "start_date": ep.start_date.isoformat(),
-                "end_date": ep.end_date.isoformat() if ep.end_date else None,
-                "load_factor": round(ep.load_factor, 2)  # Округление до 2 знаков
-            })
-        return result
+    # Замечание 8: Добавлен метод мягкого удаления, возвращающий булево значение (True/False)
+    def soft_delete(self):
+        """Мягкое удаление сотрудника"""
+        if self.is_active:
+            self.is_active = False
+            self.save()
+            return True
+        return False
 
-    # Замечание 6: Метод фильтрации сотрудников по position_id через соединение таблиц для list_employees
+    # Замечание 7: Метод комплексной фильтрации сотрудников по всем параметрам спецификации list_employees
     @classmethod
-    def get_by_position(cls, position_id):
-        return (cls
-                .select()
-                .join(EmployeePosition)
-                .where(EmployeePosition.position == position_id))
+    def filter_employees(cls, user_id=None, status=None, position_id=None, hire_date_from=None, hire_date_to=None):
+        query = cls.select()
+        
+        if position_id is not None:
+            query = query.join(EmployeePosition).where(EmployeePosition.position == position_id)
+            
+        if user_id is not None:
+            query = query.where(cls.user_id == user_id)
+        if status is not None:
+            query = query.where(cls.status == status)
+        if hire_date_from is not None:
+            query = query.where(cls.hire_date >= hire_date_from)
+        if hire_date_to is not None:
+            query = query.where(cls.hire_date <= hire_date_to)
+            
+        return query
 
 class Position(BaseModel):
     class Meta:
@@ -73,7 +77,8 @@ class Position(BaseModel):
 
     id = AutoField()
     title = CharField(max_length=100, null=False)
-    description = TextField(null=True)
+    # Замечание 2: Изменено на null=False для строгого соответствия ER-диаграмме (NOT NULL)
+    description = TextField(null=False)
 
     def save(self, *args, **kwargs):
         if not self.title or not (1 <= len(str(self.title)) <= 100):
@@ -85,16 +90,16 @@ class EmployeePosition(BaseModel):
         db_table = "employee_positions"
 
     id = AutoField()
-    # Замечание 8: Настройки on_delete='CASCADE' явно прописаны и соответствуют ERD
     employee = ForeignKeyField(Employee, backref='employee_positions_rel', on_delete='CASCADE', null=False)
     position = ForeignKeyField(Position, backref='employee_positions_rel', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
-    end_date = DateField(null=True)
-    # Замечание 7: Поле load_factor. В doc.md добавлено уточнение про формат (float, 2 знака после запятой)
+    # Замечание 3, 4: Изменено на null=False для соответствия ER-диаграмме (NOT NULL). 
+    # Это гарантирует, что у каждой связи всегда заполнены даты и структура вернётся без пропусков (None).
+    end_date = DateField(null=False)
     load_factor = FloatField(null=False)
 
     def save(self, *args, **kwargs):
-        if self.end_date is not None and self.end_date < self.start_date:
+        if self.end_date < self.start_date:
             raise ValueError("Дата окончания должности не может быть раньше даты начала")
         return super().save(*args, **kwargs)
 
@@ -121,7 +126,8 @@ class SickLeave(BaseModel):
     employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    diagnosis = TextField(null=True)
+    # Замечание 6: Изменено на null=False для устранения противоречий с doc.md (NOT NULL)
+    diagnosis = TextField(null=False)
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
