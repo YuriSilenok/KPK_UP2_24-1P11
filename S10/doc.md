@@ -59,6 +59,7 @@
 |----------|-----|
 | `id` | int |
 | `user_id` | int |
+| `hire_date` | date |
 | `status` | string |
 
 ---
@@ -114,6 +115,8 @@
 | `user_id` | int |
 | `hire_date` | date |
 | `status` | string |
+| `is_active` | boolean |
+| `updated_at` | datetime |
 
 ---
 
@@ -123,13 +126,13 @@
 erDiagram
     employees {
         int id PK
-        int user_id
+        int user_id FK
         date hire_date
         string status
-        boolean is_active
+        boolean is_active "DEFAULT true"
         datetime updated_at
     }
 ```
 
 ### Список реляционных связей:
-- Локальные реляционные связи внутри базы данных отсутствуют, так как сервис оперирует единственной изолированной мастер-сущностью `employees`. Внешняя интеграция с иными сервисами распределенной системы построена на уровне логических ссылок по полю `user_id`.
+- Локальные реляционные связи внутри базы данных отсутствуют, так как сервис оперирует единственной изолированной мастер-сущностью `employees`. Внешняя интеграция со сторонним Profile Service построена на уровне логических ссылок по полю `user_id` (внешний ключ FK уровня распределенной архитектуры).
