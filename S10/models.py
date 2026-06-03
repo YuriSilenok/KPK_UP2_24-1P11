@@ -1,3 +1,4 @@
+
 ```python
 import datetime
 from peewee import *
@@ -96,7 +97,6 @@ class Vacation(BaseModel):
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
-        self.is_active = True  # Явная инициализация значения по умолчанию (Замечание 6)
         return super().save(*args, **kwargs)
 
 class SickLeave(BaseModel):
@@ -113,7 +113,6 @@ class SickLeave(BaseModel):
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания больничного не может быть раньше даты начала")
-        self.is_active = True  # Явная инициализация значения по умолчанию (Замечание 6)
         return super().save(*args, **kwargs)
 
 def init_db():
