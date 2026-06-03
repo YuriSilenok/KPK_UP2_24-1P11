@@ -29,7 +29,11 @@ class Discipline(BaseModel):
 class Semester(BaseModel):
     id = AutoField(primary_key=True)
     semester_number = IntegerField(null=False, constraints=[Check('semester_number BETWEEN 1 AND 8')])
-    academic_year = CharField(max_length=9, null=False)
+    academic_year = CharField(
+        max_length=9, 
+        null=False, 
+        constraints=[Check("academic_year GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'")]
+    )
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
@@ -39,12 +43,16 @@ class Semester(BaseModel):
 
 class Curriculum(BaseModel):
     id = AutoField(primary_key=True)
-    group = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', null=False)
-    discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', null=False)
+    group = ForeignKeyField(Group, backref='curriculums', on_delete='RESTRICT', null=False)
+    discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='RESTRICT', null=False)
     semester = ForeignKeyField(Semester, backref='curriculums', on_delete='RESTRICT', null=False)
     theory_hours = IntegerField(null=False, constraints=[Check('theory_hours >= 0')])
     practice_hours = IntegerField(null=False, constraints=[Check('practice_hours >= 0')])
-    assessment_form = CharField(max_length=10, null=False, constraints=[Check("assessment_form IN ('exam', 'credit')")])
+    assessment_form = CharField(
+        max_length=10, 
+        null=False, 
+        constraints=[Check("assessment_form IN ('exam', 'credit')")]
+    )
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
