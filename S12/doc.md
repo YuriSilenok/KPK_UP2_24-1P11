@@ -381,15 +381,11 @@
 
 ---
 
-### ER-диаграмма
+## ER-ДИАГРАММА
 
 ```mermaid
 erDiagram
-    curriculum_plan ||--o{ subject : contains
-    subject ||--o| hours : has
-    subject ||--o{ assessment : has
-
-    curriculum_plan {
+    CURRICULUM_PLAN {
         int id PK
         string name
         int speciality_id
@@ -397,7 +393,7 @@ erDiagram
         bool is_active
     }
 
-    subject {
+    SUBJECT {
         int id PK
         int curriculum_plan_id FK
         string name
@@ -405,7 +401,7 @@ erDiagram
         bool is_active
     }
 
-    hours {
+    HOURS {
         int id PK
         int subject_id FK
         int lecture_hours
@@ -413,9 +409,13 @@ erDiagram
         bool is_active
     }
 
-    assessment {
+    ASSESSMENT {
         int id PK
         int subject_id FK
         string type
         bool is_active
     }
+
+    CURRICULUM_PLAN ||--o{ SUBJECT : contains
+    SUBJECT ||--o| HOURS : has
+    SUBJECT ||--o{ ASSESSMENT : has
