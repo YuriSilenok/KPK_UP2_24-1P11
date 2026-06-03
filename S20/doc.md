@@ -115,7 +115,8 @@
 
 ## ER-диаграмма
 
-ACADEMIC_PERIOD {
+erDiagram
+    ACADEMIC_PERIOD {
         int id PK
         string name
         date start_date
