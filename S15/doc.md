@@ -48,6 +48,7 @@
 ### 3. Delete LoadAssignment by ID (Soft Delete)
 
 При удалении `is_active` устанавливается в `False`.
+**Возвращаемое значение:** `true` (если запись найдена и помечена удалённой), иначе `false`.
 
 **Response:**
 
