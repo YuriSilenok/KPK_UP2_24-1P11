@@ -36,9 +36,9 @@
 
 | Parameter | Description | Required | Type | Constraint |
 |-----------|-------------|----------|------|------------|
-| teacher_id | Teacher ID | No | int | Foreign Key |
-| discipline_id | Discipline ID | No | int | Foreign Key |
-| group_id | Group ID | No | int | Foreign Key |
+| teacher_id | Teacher ID | No | int | - |
+| discipline_id | Discipline ID | No | int | - |
+| group_id | Group ID | No | int | - |
 
 **Response (200):**
 
@@ -55,12 +55,6 @@
 При удалении `is_active` устанавливается в `False`.
 
 **Возвращаемое значение:** `true` (если запись найдена и помечена удалённой), иначе `false`.
-
-**Response:**
-
-| Parameter | Type |
-|-----------|------|
-| success | bool |
 
 ### 4. Get LoadAssignment by ID
 
@@ -94,14 +88,16 @@
 | discipline_id | int |
 | group_id | int |
 | is_active | bool |
-# Load Assignment Service (Вариант №15)
-## ER-диаграмма
+# LOAD_ASSIGNMENT Service (Вариант №15)
+
+## ER-Diagram
+
 ```mermaid
 erDiagram
-    LoadAssignment {
+    LOAD_ASSIGNMENT {
         int id PK
-        int teacher_id FK
-        int discipline_id FK
-        int group_id FK
+        int teacher_id
+        int discipline_id
+        int group_id
         bool is_active
     }
