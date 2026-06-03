@@ -127,4 +127,6 @@ erDiagram
         int parent_period_id FK
         boolean is_active
     }
+
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "parent_period_id → id"
 ```
