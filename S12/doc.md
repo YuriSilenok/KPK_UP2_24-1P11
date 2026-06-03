@@ -383,4 +383,39 @@
 
 ### ER-диаграмма
 
-![Диаграмма](erd.png)
+```mermaid
+erDiagram
+    curriculum_plan ||--o{ subject : contains
+    subject ||--o| hours : has
+    subject ||--o{ assessment : has
+
+    curriculum_plan {
+        int id PK
+        string name
+        int speciality_id
+        int year
+        bool is_active
+    }
+
+    subject {
+        int id PK
+        int curriculum_plan_id FK
+        string name
+        int semester
+        bool is_active
+    }
+
+    hours {
+        int id PK
+        int subject_id FK
+        int lecture_hours
+        int practice_hours
+        bool is_active
+    }
+
+    assessment {
+        int id PK
+        int subject_id FK
+        string type
+        bool is_active
+    }
