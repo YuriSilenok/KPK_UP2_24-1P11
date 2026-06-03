@@ -19,22 +19,9 @@ class Employee(BaseModel):
     is_active = BooleanField(default=True)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
-    def save(self, *args, **kwargs):
-        if self.user_id <= 0:
-            raise ValueError("user_id должен быть положительным целым числом")
-        if self.hire_date < datetime.date(1900, 1, 1):
-            raise ValueError("Дата найма не может быть раньше 1900-01-01")
-        
-        allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
-        if self.status not in allowed_statuses:
-            raise ValueError(f"Статус должен быть одним из: {', '.join(allowed_statuses)}")
-            
-        self.updated_at = datetime.datetime.now()
-        return super().save(*args, **kwargs)
-
     @classmethod
     def filter_employees(cls, user_id=None, status=None, hire_date_from=None, hire_date_to=None, limit=None, offset=None):
-        """Прямая фильтрация по полям модели с обработкой лимита и смещения"""
+        """Прямая фильтрация по полям модели с обработкой пагинации"""
         query = cls.select()
         
         if user_id is not None:
@@ -46,7 +33,6 @@ class Employee(BaseModel):
         if hire_date_to is not None:
             query = query.where(cls.hire_date <= hire_date_to)
             
-        # Жестко обрабатываем пагинацию, чтобы бот отъебался
         if limit is not None:
             query = query.limit(int(limit))
         if offset is not None:
