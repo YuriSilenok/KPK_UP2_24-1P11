@@ -1,3 +1,4 @@
+```python
 import datetime
 from peewee import *
 
@@ -8,7 +9,7 @@ class BaseModel(Model):
     class Meta:
         database = db
 
-class Employee(BaseModel):
+class Employee(Model):
     class Meta:
         db_table = "employees"
 
@@ -77,6 +78,8 @@ class EmployeePosition(BaseModel):
     def save(self, *args, **kwargs):
         if self.end_date is not None and self.end_date < self.start_date:
             raise ValueError("Дата окончания должности не может быть раньше даты начала")
+        if self.load_factor <= 0:
+            raise ValueError("Ставка load_factor должна быть положительным числом")
         return super().save(*args, **kwargs)
 
 class Vacation(BaseModel):
@@ -88,10 +91,12 @@ class Vacation(BaseModel):
     start_date = DateField(null=False)
     end_date = DateField(null=False)
     type = CharField(max_length=50, null=False)
+    is_active = BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
+        self.is_active = True  # Явная инициализация значения по умолчанию (Замечание 6)
         return super().save(*args, **kwargs)
 
 class SickLeave(BaseModel):
@@ -103,10 +108,12 @@ class SickLeave(BaseModel):
     start_date = DateField(null=False)
     end_date = DateField(null=False)
     diagnosis = TextField(null=False)
+    is_active = BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
             raise ValueError("Дата окончания больничного не может быть раньше даты начала")
+        self.is_active = True  # Явная инициализация значения по умолчанию (Замечание 6)
         return super().save(*args, **kwargs)
 
 def init_db():
