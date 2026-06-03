@@ -43,9 +43,9 @@ class Semester(BaseModel):
 
 class Curriculum(BaseModel):
     id = AutoField(primary_key=True)
-    group = ForeignKeyField(Group, backref='curriculums', on_delete='RESTRICT', null=False)
-    discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='RESTRICT', null=False)
-    semester = ForeignKeyField(Semester, backref='curriculums', on_delete='RESTRICT', null=False)
+    group_id = IntegerField(null=False)
+    discipline_id = IntegerField(null=False)
+    semester_id = IntegerField(null=False)
     theory_hours = IntegerField(null=False, constraints=[Check('theory_hours >= 0')])
     practice_hours = IntegerField(null=False, constraints=[Check('practice_hours >= 0')])
     assessment_form = CharField(
@@ -57,7 +57,12 @@ class Curriculum(BaseModel):
 
     class Meta:
         table_name = 'curriculum'
-        constraints = [SQL('UNIQUE(group_id, discipline_id, semester_id)')]
+        constraints = [
+            SQL('UNIQUE(group_id, discipline_id, semester_id)'),
+            SQL('FOREIGN KEY (group_id) REFERENCES group(id) ON DELETE RESTRICT'),
+            SQL('FOREIGN KEY (discipline_id) REFERENCES discipline(id) ON DELETE RESTRICT'),
+            SQL('FOREIGN KEY (semester_id) REFERENCES semester(id) ON DELETE RESTRICT')
+        ]
 
 
 def init_db():
