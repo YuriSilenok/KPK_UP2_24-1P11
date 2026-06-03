@@ -115,13 +115,14 @@
 
 ## ER-диаграмма
 
-erDiagram
-    ACADEMIC_PERIOD {
-        int id PK
-        string name UK
-        date startDate
-        date endDate
-        string periodType
-        int parentPeriodId FK
-        boolean isActive
+ACADEMIC_PERIOD {
+        int ID PK
+        string NAME unique
+        date START_DATE
+        date END_DATE
+        string PERIOD_TYPE
+        int PARENT_PERIOD_ID FK
+        boolean IS_ACTIVE
     }
+
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : contains
