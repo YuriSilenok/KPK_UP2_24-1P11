@@ -8,22 +8,29 @@ class BaseModel(Model):
         database = db
 
 class AcademicPeriod(BaseModel):
+    """
+    Модель учебного периода согласно ER-диаграмме и API doc.md
+    """
     id = AutoField()
-    name = CharField(max_length=100, null=False)
+    name = CharField(max_length=100, null=False, unique=True)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
     is_semester = BooleanField(default=False)
     is_module = BooleanField(default=False)
-    period_type = CharField(max_length=10, null=False)
     parent_period_id = ForeignKeyField('self', null=True, backref='children')
     is_active = BooleanField(default=True)
 
     class Meta:
-        indexes = ((('name',), True),)
+        pass
 
-class AcademicPeriodService:
-    @staticmethod
-    def validate_and_create(data):
+def init_db():
+    db.connect()
+    db.create_tables([AcademicPeriod], safe=True)
+    db.close()
+
+if __name__ == "__main__":
+    init_db()
+    print("Database ready.")
         
         name = data.get('name', '').strip()
         if not name: raise ValueError("Name is required")
