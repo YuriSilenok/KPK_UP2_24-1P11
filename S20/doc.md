@@ -116,13 +116,15 @@
 ## ER-диаграмма
 
 ACADEMIC_PERIOD {
-        int ID PK
-        string NAME unique
-        date START_DATE
-        date END_DATE
-        string PERIOD_TYPE
-        int PARENT_PERIOD_ID FK
-        boolean IS_ACTIVE
+        int id PK
+        string name
+        date start_date
+        date end_date
+        boolean is_semester
+        boolean is_module
+        string period_type
+        int parent_period_id FK
+        boolean is_active
     }
 
-    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : contains
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "parent_period_id -> id"
