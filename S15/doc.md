@@ -1,11 +1,10 @@
 
+**Связи (с внешними сервисами):**
+- teacher_id ссылается на Teacher.id
+- discipline_id ссылается на Discipline.id
+- group_id ссылается на Group.id
 
-**Связи:**
-- teacher_id (FK) ссылается на id в Teacher (внешний сервис)
-- discipline_id (FK) ссылается на id в Discipline (внешний сервис)
-- group_id (FK) ссылается на id в Group (внешний сервис)
-
-**Транзитивные таблицы:** отсутствуют (связи многие-ко-многим не требуются)
+**Транзитивные таблицы:** отсутствуют
 
 ## API Description
 
@@ -53,6 +52,8 @@
 
 ### 3. Delete LoadAssignment by ID (Soft Delete)
 
+При удалении `is_active` устанавливается в `False`.
+
 **Response:**
 
 | Parameter | Type |
@@ -92,15 +93,13 @@
 | group_id | int |
 | is_active | bool |
 # Load Assignment Service (Вариант №15)
-
 ## ER-диаграмма
-
 ```mermaid
 erDiagram
     LoadAssignment {
         int id PK
-        int teacher_id FK
-        int discipline_id FK
-        int group_id FK
+        int teacher_id
+        int discipline_id
+        int group_id
         bool is_active
     }
