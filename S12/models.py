@@ -39,13 +39,12 @@ class Discipline(BaseModel):
 class Semester(BaseModel):
     """Семестр"""
     id = AutoField(primary_key=True)
-    semester_number = IntegerField(null=False, constraints=[Check('semester_number BETWEEN 1 AND 8')])
-    academic_year = CharField(max_length=9, null=False)
+    semester = IntegerField(null=False, constraints=[Check('semester BETWEEN 1 AND 8')])
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
         table_name = 'semesters'
-        constraints = [SQL('UNIQUE(semester_number, academic_year)')]
+        constraints = [SQL('UNIQUE(semester)')]
 
 
 class Curriculum(BaseModel):
@@ -63,13 +62,12 @@ class Curriculum(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'curriculum' # Исправлена опечатка: curriculum -> curriculum
+        table_name = 'curriculums'  # исправлено curriculum -> curriculums
         constraints = [
             SQL('UNIQUE(group_id, discipline_id, semester_id)')
         ]
-        # ИСПРАВЛЕН СИНТАКСИС ИНДЕКСОВ
         indexes = (
-            (('group_id', 'discipline_id', 'semester_id'), True), # Уникальный индекс по трем полям
+            (('group_id', 'discipline_id', 'semester_id'), True),
             (('is_active',), False),
         )
 
@@ -143,7 +141,6 @@ class Curriculum(BaseModel):
         return True
 
     def update_fields(self, **kwargs):
-        # Запрещённые поля
         forbidden_fields = ['group_id', 'discipline_id', 'semester_id', 'id', 'is_active']
 
         for field in forbidden_fields:
@@ -169,10 +166,6 @@ class Curriculum(BaseModel):
 
     @classmethod
     def get_filtered_list(cls, filters=None, page=1, page_size=20):
-        """
-        Получение отфильтрованного списка учебных планов с пагинацией.
-        """
-        # Валидация параметров пагинации
         if page < 1:
             raise ValueError("Параметр 'page' должен быть >= 1.")
         if page_size < 1 or page_size > 100:
@@ -183,11 +176,9 @@ class Curriculum(BaseModel):
         if filters is None:
             filters = {}
 
-        # По умолчанию возвращаем только активные записи
         if 'is_active' not in filters or filters['is_active'] is None:
             query = query.where(cls.is_active == True)
 
-        # Фильтрация по ID и другим полям
         if filters.get('id') is not None:
             query = query.where(cls.id == filters['id'])
         if filters.get('group_id') is not None:
@@ -197,7 +188,6 @@ class Curriculum(BaseModel):
         if filters.get('semester_id') is not None:
             query = query.where(cls.semester_id == filters['semester_id'])
 
-        # Фильтрация по диапазонам часов
         if filters.get('theory_hours_min') is not None:
             query = query.where(cls.theory_hours >= filters['theory_hours_min'])
         if filters.get('theory_hours_max') is not None:
@@ -207,18 +197,13 @@ class Curriculum(BaseModel):
         if filters.get('practice_hours_max') is not None:
             query = query.where(cls.practice_hours <= filters['practice_hours_max'])
 
-        # Явная фильтрация по is_active, если передано значение
         if 'is_active' in filters and filters['is_active'] is not None:
             query = query.where(cls.is_active == filters['is_active'])
 
-        # Подсчет общего количества записей для пагинации
         total = query.count()
-
-        # Применение пагинации
         offset = (page - 1) * page_size
         query = query.offset(offset).limit(page_size)
 
-        # Получение результатов и преобразование в словари
         items = [record.to_dict() for record in query]
 
         return {
@@ -238,11 +223,8 @@ def create_tables():
 
 def add_default_data():
     if Semester.select().count() == 0:
-        current_year = datetime.datetime.now().year
-         # Создаем семестры на несколько лет вперед/назад для примера
-        for year in range(current_year - 1, current_year + 5):
-             for sem in range(1, 3):
-                 Semester.create(semester_number=sem, academic_year=f"{year}-{year+1}")
+        for sem in range(1, 9):
+            Semester.create(semester=sem)
         print("✓ Семестры добавлены")
 
 
