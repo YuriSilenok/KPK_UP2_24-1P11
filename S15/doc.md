@@ -1,9 +1,4 @@
 
-**Связи с внешними сервисами:**
-- teacher_id (FK) --|| ..|| Teacher.id
-- discipline_id (FK) --|| ..|| Discipline.id
-- group_id (FK) --|| ..|| Group.id
-
 **Транзитивные таблицы:** отсутствуют
 
 ## API Description
@@ -14,9 +9,9 @@
 
 | Parameter | Description | Required | Type | Constraint | Default |
 |-----------|-------------|----------|------|------------|---------|
-| teacher_id | Teacher ID | Yes | int | Foreign Key | - |
-| discipline_id | Discipline ID | Yes | int | Foreign Key | - |
-| group_id | Group ID | Yes | int | Foreign Key | - |
+| teacher_id | Teacher ID | Yes | int | - | - |
+| discipline_id | Discipline ID | Yes | int | - | - |
+| group_id | Group ID | Yes | int | - | - |
 
 **Unique combination:** (teacher_id, discipline_id, group_id)
 
@@ -54,7 +49,11 @@
 
 При удалении `is_active` устанавливается в `False`.
 
-**Возвращаемое значение:** `true` (если запись найдена и помечена удалённой), иначе `false`.
+**Response:**
+
+| Parameter | Type |
+|-----------|------|
+| success | bool |
 
 ### 4. Get LoadAssignment by ID
 
