@@ -338,3 +338,46 @@
 
 | Параметр (англ.) | Пояснение | Тип |
 |----------|-----------|-----|
+
+erDiagram
+    employees {
+        int id PK
+        int user_id
+        date hire_date
+        string status
+        boolean is_active
+        datetime updated_at
+    }
+    positions {
+        int id PK
+        string title
+        text description
+    }
+    employee_positions {
+        int id PK
+        int employee FK
+        int position FK
+        date start_date
+        date end_date
+        float load_factor
+    }
+    vacations {
+        int id PK
+        int employee FK
+        date start_date
+        date end_date
+        string type
+    }
+    sick_leaves {
+        int id PK
+        int employee FK
+        date start_date
+        date end_date
+        text diagnosis
+    }
+
+    employees ||--o{ employee_positions : "employee_positions.employee -> employees.id"
+    positions ||--o{ employee_positions : "employee_positions.position -> positions.id"
+    employees ||--o{ vacations : "vacations.employee -> employees.id"
+    employees ||--o{ sick_leaves : "sick_leaves.employee -> employees.id"
+
