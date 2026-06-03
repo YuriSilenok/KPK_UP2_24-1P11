@@ -114,16 +114,15 @@
 
 ## ER-диаграмма
 
-erDiagram
-    academic_period {
-        INTEGER id PK
-        VARCHAR_100 name
-        VARCHAR_9 academic_year
-        DATE start_date
-        DATE end_date
-        VARCHAR_10 period_type
-        INTEGER parent_period_id FK
-        BOOLEAN is_active
+ academic_period {
+        int id PK
+        varchar name
+        varchar academic_year
+        date start_date
+        date end_date
+        varchar period_type
+        boolean is_active
+        int parent_period_id FK
     }
 
-    academic_period ||--o{ academic_period : "parent_period_id -> id"
+    academic_period||--o{ academic_period : "contains (parent_period_id references id)"
