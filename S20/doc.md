@@ -113,4 +113,16 @@
 
 ## ER-диаграмма
 
-![ER-диаграмма](erd.png) 
+```mermaid
+erDiagram
+    academic_period {
+        int id PK
+        varchar name
+        varchar academic_year
+        date start_date
+        date end_date
+        varchar period_type
+        boolean is_active
+        int parent_period_id FK
+    }
+```
