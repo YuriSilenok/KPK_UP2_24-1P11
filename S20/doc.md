@@ -123,9 +123,7 @@ erDiagram
         date start_date
         date end_date
         string period_type
-        int parent_period_id FK
+        int parent_period_id
         boolean is_active
     }
-
-    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "parent_period_id → id"
 ```
