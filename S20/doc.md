@@ -117,22 +117,13 @@
 
 ```mermaid
 erDiagram
-    SEMESTER {
+    ACADEMIC_PERIOD {
         INT ID PK
-        STRING NAME
+        STRING NAME "INDEX: name_contains"
         DATE START_DATE
         DATE END_DATE
+        STRING PERIOD_TYPE
+        INT PARENT_PERIOD_ID
         BOOLEAN IS_ACTIVE
     }
-
-    MODULE {
-        INT ID PK
-        STRING NAME
-        DATE START_DATE
-        DATE END_DATE
-        INT SEMESTER_ID FK
-        BOOLEAN IS_ACTIVE
-    }
-
-    SEMESTER ||--o{ MODULE : "SEMESTER_ID → ID"
 ```
