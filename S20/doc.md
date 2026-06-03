@@ -131,6 +131,6 @@ erDiagram
         BOOLEAN is_active
     }
 
-    school_year ||--o{ academic_period : "contains"
-    academic_period ||--o{ academic_period : "parent_period_id"
+    school_year ||--o{ academic_period : "содержит"
+    academic_period ||--o{ academic_period : "parent"
 ```
