@@ -117,19 +117,22 @@
 
 ```mermaid
 erDiagram
-    ACADEMIC_PERIOD {
+    SEMESTER {
         INT ID PK
         STRING NAME
         DATE START_DATE
         DATE END_DATE
-        BOOLEAN IS_SEMESTER
-        BOOLEAN IS_MODULE
-        INT PARENT_PERIOD_ID FK
         BOOLEAN IS_ACTIVE
     }
 
-    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "PARENT_PERIOD_ID → ID"
-```
+    MODULE {
+        INT ID PK
+        STRING NAME
+        DATE START_DATE
+        DATE END_DATE
+        INT SEMESTER_ID FK
+        BOOLEAN IS_ACTIVE
+    }
 
-### Список реляционных связей
-* Таблица `ACADEMIC_PERIOD` (поле `PARENT_PERIOD_ID`) связывается с таблицей `ACADEMIC_PERIOD` (поле `ID`).
+    SEMESTER ||--o{ MODULE : "SEMESTER_ID → ID"
+```
