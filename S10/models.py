@@ -39,6 +39,7 @@ class SickLeave(BaseModel):
 
 def init_db():
     db.connect(reuse_if_open=True)
+
     db.create_tables([
         Position,
         EmployeeStatus,
@@ -48,3 +49,4 @@ def init_db():
 
 if __name__ == "__main__":
     init_db()
+    print("Database initialized successfully.")
