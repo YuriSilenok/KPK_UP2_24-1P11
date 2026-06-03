@@ -121,11 +121,7 @@ erDiagram
         string name UK
         date startDate
         date endDate
-        boolean isSemester
-        boolean isModule
         string periodType
         int parentPeriodId FK
         boolean isActive
     }
-
-    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "parent"
