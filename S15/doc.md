@@ -1,9 +1,10 @@
-**Связи (с внешними сервисами):**
-- teacher_id ссылается на Teacher.id (внешний сервис)
-- discipline_id ссылается на Discipline.id (внешний сервис)
-- group_id ссылается на Group.id (внешний сервис)
 
-**Транзитивные таблицы:** отсутствуют (в предметной области нет связи многие-ко-многим)
+**Связи с внешними сервисами:**
+- teacher_id (FK) --|| ..|| Teacher.id
+- discipline_id (FK) --|| ..|| Discipline.id
+- group_id (FK) --|| ..|| Group.id
+
+**Транзитивные таблицы:** отсутствуют
 
 ## API Description
 
@@ -53,6 +54,8 @@
 
 При удалении `is_active` устанавливается в `False`.
 
+**Возвращаемое значение:** `true` (если запись найдена и помечена удалённой), иначе `false`.
+
 **Response:**
 
 | Parameter | Type |
@@ -97,8 +100,8 @@
 erDiagram
     LoadAssignment {
         int id PK
-        int teacher_id
-        int discipline_id
-        int group_id
+        int teacher_id FK
+        int discipline_id FK
+        int group_id FK
         bool is_active
     }
