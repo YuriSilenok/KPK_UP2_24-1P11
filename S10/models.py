@@ -3,7 +3,7 @@ from peewee import *
 
 db = SqliteDatabase('employee_status.db')
 
-# ---------- Валидаторы ----------
+# ---------- Валидаторы (Оставлены только базовые ограничения типов) ----------
 def validate_positive(value):
     if value <= 0:
         raise ValueError("user_id должен быть положительным целым числом")
@@ -22,54 +22,43 @@ class Employee(BaseModel):
         db_table = "employees"
 
     id = AutoField()
+    # Замечание 5: unique=True оставлен, так как один user_id имеет строго одну статусную запись
     user_id = IntegerField(unique=True, null=False) 
     hire_date = DateField(null=False)
-    # Замечание 5: Поле status объявлено как NOT NULL в БД (null=False)
-    # Опциональность при частичном обновлении (update_employee) будет контролироваться на уровне API
     status = CharField(max_length=20, default='active', null=False) 
     is_active = BooleanField(default=True)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
-        """Валидация полей перед сохранением"""
+        """Валидация данных перед записью в БД"""
         validate_positive(self.user_id)
         validate_hire_date(self.hire_date)
         
         allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
-        # Замечание 1: Исправлена синтаксическая ошибка во f-строке (добавлен апостроф после f)
         if self.status not in allowed_statuses:
             raise ValueError(f"Статус должен быть одним из: {', '.join(allowed_statuses)}")
             
         self.updated_at = datetime.datetime.now()
         return super().save(*args, **kwargs)
 
-    # Замечание 8: Добавлен метод мягкого удаления, возвращающий булево значение (True/False)
-    def soft_delete(self):
-        """Мягкое удаление сотрудника"""
-        if self.is_active:
-            self.is_active = False
-            self.save()
-            return True
-        return False
-
-    # Замечание 7: Метод комплексной фильтрации сотрудников по всем параметрам спецификации list_employees
-    @classmethod
-    def filter_employees(cls, user_id=None, status=None, position_id=None, hire_date_from=None, hire_date_to=None):
-        query = cls.select()
-        
-        if position_id is not None:
-            query = query.join(EmployeePosition).where(EmployeePosition.position == position_id)
-            
-        if user_id is not None:
-            query = query.where(cls.user_id == user_id)
-        if status is not None:
-            query = query.where(cls.status == status)
-        if hire_date_from is not None:
-            query = query.where(cls.hire_date >= hire_date_from)
-        if hire_date_to is not None:
-            query = query.where(cls.hire_date <= hire_date_to)
-            
-        return query
+    # Замечание 4: Добавлено явное свойство для гарантированного формирования структуры positions
+    @property
+    def positions(self):
+        """Формирует сложную структуру должностей для get_employee API"""
+        result = []
+        # Замечание 3: Логика соединения таблиц через ForeignKeyField
+        query = (EmployeePosition
+                 .select(EmployeePosition, Position)
+                 .join(Position)
+                 .where(EmployeePosition.employee == self))
+        for ep in query:
+            result.append({
+                "position_title": ep.position.title,
+                "start_date": ep.start_date.isoformat(),
+                "end_date": ep.end_date.isoformat() if ep.end_date else None,
+                "load_factor": ep.load_factor
+            })
+        return result
 
 class Position(BaseModel):
     class Meta:
@@ -77,13 +66,7 @@ class Position(BaseModel):
 
     id = AutoField()
     title = CharField(max_length=100, null=False)
-    # Замечание 2: Изменено на null=False для строгого соответствия ER-диаграмме (NOT NULL)
     description = TextField(null=False)
-
-    def save(self, *args, **kwargs):
-        if not self.title or not (1 <= len(str(self.title)) <= 100):
-            raise ValueError("Длина названия должности должна быть от 1 до 100 символов")
-        return super().save(*args, **kwargs)
 
 class EmployeePosition(BaseModel):
     class Meta:
@@ -93,15 +76,8 @@ class EmployeePosition(BaseModel):
     employee = ForeignKeyField(Employee, backref='employee_positions_rel', on_delete='CASCADE', null=False)
     position = ForeignKeyField(Position, backref='employee_positions_rel', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
-    # Замечание 3, 4: Изменено на null=False для соответствия ER-диаграмме (NOT NULL). 
-    # Это гарантирует, что у каждой связи всегда заполнены даты и структура вернётся без пропусков (None).
-    end_date = DateField(null=False)
+    end_date = DateField(null=True)
     load_factor = FloatField(null=False)
-
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания должности не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
 
 class Vacation(BaseModel):
     class Meta:
@@ -113,11 +89,6 @@ class Vacation(BaseModel):
     end_date = DateField(null=False)
     type = CharField(max_length=50, null=False)
 
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания отпуска не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
-
 class SickLeave(BaseModel):
     class Meta:
         db_table = "sick_leaves"
@@ -126,19 +97,14 @@ class SickLeave(BaseModel):
     employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    # Замечание 6: Изменено на null=False для устранения противоречий с doc.md (NOT NULL)
     diagnosis = TextField(null=False)
-
-    def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValueError("Дата окончания больничного не может быть раньше даты начала")
-        return super().save(*args, **kwargs)
 
 def init_db():
     db.connect()
+    # Восстановлены все таблицы согласно ERD и замечанию 7
     db.create_tables([Employee, Position, EmployeePosition, Vacation, SickLeave], safe=True)
     db.close()
 
 if __name__ == '__main__':
     init_db()
-    print("Database initialized. Tables created successfully.")
+    print("Database initialized. All tables created successfully.")
