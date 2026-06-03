@@ -1,296 +1,114 @@
-# 15. Load Assignment Service (Сервис распределения нагрузки)
 
-## Общие коды HTTP-статусов
-| Успех | Код | Ошибка | Код |
-|-------|-----|--------|-----|
-| GET (один) | 200 | Не найдено | 404 |
-| GET (список) | 200 | Неверный параметр | 400 |
-| POST (создание) | 201 | Конфликт (дубликат) | 409 |
-| PUT (обновление) | 200 | Ошибка валидации | 422 |
-| DELETE | 200 | Ошибка сервера | 500 |
+**Связи:**
+- Teacher (1) ----< LoadAssignment (M)
+- Discipline (1) ----< LoadAssignment (M)
+- Group (1) ----< LoadAssignment (M)
 
-## Общая структура ошибки
-| Параметр | Тип | Пояснение |
-|----------|-----|-----------|
-| error | string | Тип ошибки |
-| message | string | Описание ошибки |
+**Транзитивные таблицы:** отсутствуют (связи многие-ко-многим не требуются)
 
-## Teacher
-| Поле | Тип | Обязательность | Ограничение | Пояснение |
-|------|-----|----------------|-------------|-----------|
-| id | integer | Да | PK | Идентификатор |
-| full_name | varchar(200) | Да | NOT NULL, UNIQUE | ФИО |
-| position | varchar(100) | Да | NOT NULL | Должность |
+## API Description
 
-### Добавить Teacher
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| full_name | string | Да | ФИО |
-| position | string | Да | Должность |
+### 1. Add LoadAssignment
 
-**Возвращает:** созданную запись Teacher
+**Request body:**
 
-### Изменить Teacher по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-| full_name | string | Нет | ФИО |
-| position | string | Нет | Должность |
+| Parameter | Description | Required | Type | Constraint | Default |
+|-----------|-------------|----------|------|------------|---------|
+| teacher_id | Teacher ID | Yes | int | Foreign Key | - |
+| discipline_id | Discipline ID | Yes | int | Foreign Key | - |
+| group_id | Group ID | Yes | int | Foreign Key | - |
 
-**Возвращает:** обновлённую запись Teacher
+**Unique combination:** (teacher_id, discipline_id, group_id)
 
-### Удалить Teacher по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
+**Response (201):**
 
-**Возвращает:** True/False
+| Parameter | Type |
+|-----------|------|
+| id | int |
+| teacher_id | int |
+| discipline_id | int |
+| group_id | int |
+| is_active | bool |
 
-### Получить Teacher по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
+### 2. Update LoadAssignment by ID
 
-**Возвращает:** запись Teacher
+**Request body:**
 
-### Получить список Teacher
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| limit | integer | Нет | Лимит записей |
-| offset | integer | Нет | Сдвиг |
+| Parameter | Description | Required | Type | Constraint |
+|-----------|-------------|----------|------|------------|
+| teacher_id | Teacher ID | No | int | Foreign Key |
+| discipline_id | Discipline ID | No | int | Foreign Key |
+| group_id | Group ID | No | int | Foreign Key |
 
-**Возвращает:** массив Teacher
+**Response (200):**
 
-## Discipline
-| Поле | Тип | Обязательность | Ограничение | Пояснение |
-|------|-----|----------------|-------------|-----------|
-| id | integer | Да | PK | Идентификатор |
-| name | varchar(200) | Да | NOT NULL, UNIQUE | Название |
-| hours_total | integer | Да | NOT NULL | Часы |
+| Parameter | Type |
+|-----------|------|
+| id | int |
+| teacher_id | int |
+| discipline_id | int |
+| group_id | int |
+| is_active | bool |
 
-### Добавить Discipline
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| name | string | Да | Название |
-| hours_total | integer | Да | Часы |
+### 3. Delete LoadAssignment by ID (Soft Delete)
 
-**Возвращает:** созданную запись Discipline
+Returns: `true` if found and marked as deleted, otherwise `false`
 
-### Изменить Discipline по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-| name | string | Нет | Название |
-| hours_total | integer | Нет | Часы |
+### 4. Get LoadAssignment by ID
 
-**Возвращает:** обновлённую запись Discipline
+**Response (200):**
 
-### Удалить Discipline по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
+| Parameter | Description | Type |
+|-----------|-------------|------|
+| id | Record ID | int |
+| teacher_id | Teacher ID | int |
+| discipline_id | Discipline ID | int |
+| group_id | Group ID | int |
+| is_active | Active flag | bool |
 
-**Возвращает:** True/False
+### 5. Get LoadAssignments by filters
 
-### Получить Discipline по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
+**Query parameters:**
 
-**Возвращает:** запись Discipline
+| Parameter | Description | Type |
+|-----------|-------------|------|
+| teacher_id | Filter by teacher | int |
+| discipline_id | Filter by discipline | int |
+| group_id | Filter by group | int |
+| is_active | Filter by active status | bool |
 
-### Получить список Discipline
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| limit | integer | Нет | Лимит записей |
-| offset | integer | Нет | Сдвиг |
+**Response (200):**
 
-**Возвращает:** массив Discipline
+| Parameter | Type |
+|-----------|------|
+| id | int |
+| teacher_id | int |
+| discipline_id | int |
+| group_id | int |
+| is_active | bool |
+# Сервис распределения нагрузки (Load Assignment Service)
+Вариант №15
 
-## Group
-| Поле | Тип | Обязательность | Ограничение | Пояснение |
-|------|-----|----------------|-------------|-----------|
-| id | integer | Да | PK | Идентификатор |
-| group_number | varchar(20) | Да | NOT NULL, UNIQUE | Номер |
-| specialty_id | integer | Да | NOT NULL | Специальность |
-
-### Добавить Group
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| group_number | string | Да | Номер группы |
-| specialty_id | integer | Да | ID специальности |
-
-**Возвращает:** созданную запись Group
-
-### Изменить Group по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-| group_number | string | Нет | Номер группы |
-| specialty_id | integer | Нет | ID специальности |
-
-**Возвращает:** обновлённую запись Group
-
-### Удалить Group по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-
-**Возвращает:** True/False
-
-### Получить Group по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-
-**Возвращает:** запись Group
-
-### Получить список Group
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| limit | integer | Нет | Лимит записей |
-| offset | integer | Нет | Сдвиг |
-
-**Возвращает:** массив Group
-
-## Student
-| Поле | Тип | Обязательность | Ограничение | Пояснение |
-|------|-----|----------------|-------------|-----------|
-| id | integer | Да | PK | Идентификатор |
-| student_number | varchar(50) | Да | NOT NULL, UNIQUE | Номер студента |
-| current_group_id | integer | Да | FK -> Group.id | ID группы |
-| status | varchar(50) | Да | NOT NULL | Статус |
-
-### Добавить Student
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| student_number | string | Да | Номер студента |
-| current_group_id | integer | Да | ID группы |
-| status | string | Да | Статус |
-
-**Возвращает:** созданную запись Student
-
-### Изменить Student по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-| student_number | string | Нет | Номер студента |
-| current_group_id | integer | Нет | ID группы |
-| status | string | Нет | Статус |
-
-**Возвращает:** обновлённую запись Student
-
-### Удалить Student по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-
-**Возвращает:** True/False
-
-### Получить Student по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-
-**Возвращает:** запись Student
-
-### Получить список Student
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| limit | integer | Нет | Лимит записей |
-| offset | integer | Нет | Сдвиг |
-
-**Возвращает:** массив Student
-
-## LoadAssignment
-| Поле | Тип | Обязательность | Ограничение | Пояснение |
-|------|-----|----------------|-------------|-----------|
-| id | integer | Да | PK | Идентификатор |
-| teacher_id | integer | Да | FK -> Teacher.id | ID преподавателя |
-| discipline_id | integer | Да | FK -> Discipline.id | ID дисциплины |
-| group_id | integer | Да | FK -> Group.id | ID группы |
-| semester | integer | Да | CHECK (1-8) | Номер семестра |
-| load_hours | decimal(5,2) | Да | CHECK (>0) | Часы |
-| is_active | boolean | Да | default True | Флаг активности |
-
-### Добавить LoadAssignment
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| teacher_id | integer | Да | ID преподавателя |
-| discipline_id | integer | Да | ID дисциплины |
-| group_id | integer | Да | ID группы |
-| semester | integer | Да | Номер семестра (1-8) |
-| load_hours | decimal(5,2) | Да | Часы (>0) |
-
-**Уникальные комбинации:** (teacher_id, discipline_id, group_id, semester)
-
-**Возвращает:** созданную запись LoadAssignment
-
-### Изменить LoadAssignment по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-| teacher_id | integer | Нет | ID преподавателя |
-| discipline_id | integer | Нет | ID дисциплины |
-| group_id | integer | Нет | ID группы |
-| semester | integer | Нет | Номер семестра (1-8) |
-| load_hours | decimal(5,2) | Нет | Часы (>0) |
-
-**Возвращает:** обновлённую запись LoadAssignment
-
-### Удалить LoadAssignment по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-
-**Возвращает:** True/False
-
-### Получить LoadAssignment по ID
-| Параметр | Тип | Обязательность | Пояснение |
-|----------|-----|----------------|-----------|
-| id | integer | Да | ID записи (в path) |
-
-**Возвращает:** запись LoadAssignment
-
-### Получить список LoadAssignment
-| Параметр | Тип | Обязательность | Пояснение | Ошибка |
-|----------|-----|----------------|-----------|--------|
-| teacher_id | integer | Нет | Фильтр по преподавателю | 400 если ID не существует |
-| discipline_id | integer | Нет | Фильтр по дисциплине | 400 если ID не существует |
-| group_id | integer | Нет | Фильтр по группе | 400 если ID не существует |
-| semester | integer | Нет | Фильтр по семестру | 400 если не 1-8 |
-| limit | integer | Нет | Лимит записей | - |
-| offset | integer | Нет | Сдвиг | - |
-
-**Возвращает:** массив LoadAssignment
-
-## ER-диаграмма
+## ER-диаграмма (Mermaid)
 
 ```mermaid
 erDiagram
     Teacher {
-        integer id PK
+        int id PK
     }
     Discipline {
-        integer id PK
+        int id PK
     }
     Group {
-        integer id PK
-    }
-    Student {
-        integer id PK
-        integer current_group_id FK
+        int id PK
     }
     LoadAssignment {
-        integer id PK
-        integer teacher_id FK
-        integer discipline_id FK
-        integer group_id FK
-        integer semester
-        decimal load_hours
-        boolean is_active
+        int id PK
+        int teacher_id FK
+        int discipline_id FK
+        int group_id FK
+        bool is_active
     }
-    Teacher ||--o{ LoadAssignment : ""
-    Discipline ||--o{ LoadAssignment : ""
-    Group ||--o{ LoadAssignment : ""
-    Group ||--o{ Student : ""
+    Teacher ||--o{ LoadAssignment : has
+    Discipline ||--o{ LoadAssignment : has
+    Group ||--o{ LoadAssignment : has
