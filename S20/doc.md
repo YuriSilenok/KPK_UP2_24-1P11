@@ -118,13 +118,15 @@
 ```mermaid
 erDiagram
     ACADEMIC_PERIOD {
-        INT ID PK
-        STRING NAME 
-        DATE START_DATE
-        DATE END_DATE
-        STRING PERIOD_TYPE
-        INT PARENT_PERIOD_ID FK
-        BOOLEAN IS_ACTIVE
+        int ID PK
+        string NAME 
+        date START_DATE
+        date END_DATE
+        boolean IS_SEMESTER
+        boolean IS_MODULE
+        string PERIOD_TYPE
+        int PARENT_PERIOD_ID FK
+        boolean IS_ACTIVE
     }
 
-    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "содержит дочерние периоды"
+    ACADEMIC_PERIOD ||--o{ ACADEMIC_PERIOD : "ID -> PARENT_PERIOD_ID"
