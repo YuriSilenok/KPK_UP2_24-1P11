@@ -13,12 +13,12 @@ class Employee(BaseModel):
         db_table = "employees"
 
     id = AutoField()
-    # Замечание 2: Поле является логической связью со сторонним микросервисом Profile Service.
-    # Намеренно объявлено как IntegerField без ForeignKeyField для соблюдения архитектуры микросервисов.
+    # Логическая связь со сторонним микросервисом Profile Service.
     user_id = IntegerField(unique=True, null=False) 
+    get_by_id = DateField(null=False)
     hire_date = DateField(null=False)
     status = CharField(max_length=20, default='active', null=False) 
-    is_deleted = BooleanField(default=False)
+    is_active = BooleanField(default=True)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
