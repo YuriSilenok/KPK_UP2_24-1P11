@@ -1,4 +1,10 @@
 
+
+**Связи:**
+- teacher_id ссылается на Teacher.id (внешний сервис)
+- discipline_id ссылается на Discipline.id (внешний сервис)
+- group_id ссылается на Group.id (внешний сервис)
+
 **Транзитивные таблицы:** отсутствуют
 
 ## API Description
@@ -48,7 +54,6 @@
 ### 3. Delete LoadAssignment by ID (Soft Delete)
 
 При удалении `is_active` устанавливается в `False`.
-**Возвращаемое значение:** `true` (если запись найдена и помечена удалённой), иначе `false`.
 
 **Response:**
 
