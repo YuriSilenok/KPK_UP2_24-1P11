@@ -15,9 +15,10 @@ class Employee(BaseModel):
     id = AutoField()
     # Логическая связь со сторонним микросервисом Profile Service.
     user_id = IntegerField(unique=True, null=False) 
-    get_by_id = DateField(null=False)
-    hire_date = DateField(null=False)
-    status = CharField(max_length=20, default='active', null=False) 
+    # Замечание 1 и 2: Ошибочное поле get_by_id полностью удалено.
+    # Замечание 6: Убрано null=False для полноценной опциональности в методе update_employee.
+    hire_date = DateField()
+    status = CharField(max_length=20, default='active') 
     is_active = BooleanField(default=True)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
@@ -25,7 +26,7 @@ class Employee(BaseModel):
         """Валидация данных перед записью в БД"""
         if self.user_id <= 0:
             raise ValueError("user_id должен быть положительным целым числом")
-        if self.hire_date < datetime.date(1900, 1, 1):
+        if self.hire_date and self.hire_date < datetime.date(1900, 1, 1):
             raise ValueError("Дата найма не может быть раньше 1900-01-01")
         
         allowed_statuses = ['active', 'on_vacation', 'sick_leave', 'fired']
