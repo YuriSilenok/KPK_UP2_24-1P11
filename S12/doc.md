@@ -2,419 +2,419 @@
 
 #### Создание учебного плана
 
-Information required for creating a curriculum plan
+Информация требуемая для создания учебного плана
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| name | Curriculum plan name | Yes | string | not empty | — |
-| speciality_id | Specialty ID from service 6 | Yes | integer | exists in service 6 | — |
-| year | Curriculum plan year | Yes | integer | > 2000 | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| name | Название учебного плана | Обязательно | Строка | Не пустое | — |
+| speciality_id | ID специальности из сервиса 6 | Обязательно | Целое | Существует в сервисе 6 | — |
+| year | Год учебного плана | Обязательно | Целое | > 2000 | — |
 
-**Unique combinations:** —
+Уникальные комбинации: —
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| name | string |
-| speciality_id | integer |
-| year | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| name | Строка |
+| speciality_id | Целое |
+| year | Целое |
+| is_active | Логический |
 
 ---
 
 #### Получение учебного плана по ID
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Curriculum plan ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID учебного плана | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| name | string |
-| speciality_id | integer |
-| year | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| name | Строка |
+| speciality_id | Целое |
+| year | Целое |
+| is_active | Логический |
 
 ---
 
 #### Получение списка учебных планов
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| year | Filter by year | No | integer | > 2000 | — |
-| speciality_id | Filter by specialty | No | integer | — | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| year | Фильтр по году | Необязательно | Целое | > 2000 | — |
+| speciality_id | Фильтр по специальности | Необязательно | Целое | — | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| name | string |
-| speciality_id | integer |
-| year | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| name | Строка |
+| speciality_id | Целое |
+| year | Целое |
+| is_active | Логический |
 
 ---
 
 #### Обновление учебного плана
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Curriculum plan ID | Yes | integer | exists in DB | — |
-| name | Curriculum plan name | No | string | not empty | — |
-| speciality_id | Specialty ID from service 6 | No | integer | exists in service 6 | — |
-| year | Curriculum plan year | No | integer | > 2000 | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID учебного плана | Обязательно | Целое | Существует в БД | — |
+| name | Название учебного плана | Необязательно | Строка | Не пустое | — |
+| speciality_id | ID специальности | Необязательно | Целое | Существует в сервисе 6 | — |
+| year | Год учебного плана | Необязательно | Целое | > 2000 | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| name | string |
-| speciality_id | integer |
-| year | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| name | Строка |
+| speciality_id | Целое |
+| year | Целое |
+| is_active | Логический |
 
 ---
 
 #### Удаление учебного плана
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Curriculum plan ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID учебного плана | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| success | boolean |
+| Параметр | Тип |
+|----------|-----|
+| success | Логический |
 
-*Soft delete (is_active = false). Returns true if record was found and deactivated, false if already inactive or not found.*
+*Мягкое удаление (is_active = false). Возвращает true если запись найдена и деактивирована, false если уже неактивна или не найдена.*
 
 ---
 
 #### Добавление дисциплины
 
-**Information required for creating a subject**
+Информация требуемая для добавления дисциплины
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| curriculum_plan_id | Curriculum plan ID | Yes | integer | exists in DB | — |
-| name | Subject name | Yes | string | not empty | — |
-| semester | Semester number | Yes | integer | 1–12 | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| curriculum_plan_id | ID учебного плана | Обязательно | Целое | Существует в БД | — |
+| name | Название дисциплины | Обязательно | Строка | Не пустое | — |
+| semester | Номер семестра | Обязательно | Целое | 1–12 | — |
 
-**Unique combinations:** —
+Уникальные комбинации: —
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| curriculum_plan_id | integer |
-| name | string |
-| semester | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| curriculum_plan_id | Целое |
+| name | Строка |
+| semester | Целое |
+| is_active | Логический |
 
 ---
 
 #### Получение дисциплины по ID
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Subject ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| curriculum_plan_id | integer |
-| name | string |
-| semester | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| curriculum_plan_id | Целое |
+| name | Строка |
+| semester | Целое |
+| is_active | Логический |
 
 ---
 
 #### Получение списка дисциплин
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| curriculum_plan_id | Filter by curriculum plan | No | integer | — | — |
-| semester | Filter by semester | No | integer | 1–12 | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| curriculum_plan_id | Фильтр по учебному плану | Необязательно | Целое | — | — |
+| semester | Фильтр по семестру | Необязательно | Целое | 1–12 | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| curriculum_plan_id | integer |
-| name | string |
-| semester | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| curriculum_plan_id | Целое |
+| name | Строка |
+| semester | Целое |
+| is_active | Логический |
 
 ---
 
 #### Обновление дисциплины
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Subject ID | Yes | integer | exists in DB | — |
-| name | Subject name | No | string | not empty | — |
-| semester | Semester number | No | integer | 1–12 | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
+| name | Название дисциплины | Необязательно | Строка | Не пустое | — |
+| semester | Номер семестра | Необязательно | Целое | 1–12 | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| curriculum_plan_id | integer |
-| name | string |
-| semester | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| curriculum_plan_id | Целое |
+| name | Строка |
+| semester | Целое |
+| is_active | Логический |
 
 ---
 
 #### Удаление дисциплины
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Subject ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| success | boolean |
+| Параметр | Тип |
+|----------|-----|
+| success | Логический |
 
 ---
 
 #### Добавление часов
 
-**Information required for adding hours**
+Информация требуемая для добавления часов
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| subject_id | Subject ID | Yes | integer | exists in DB | — |
-| lecture_hours | Lecture hours | Yes | integer | >= 0 | 0 |
-| practice_hours | Practice hours | Yes | integer | >= 0 | 0 |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| subject_id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
+| lecture_hours | Лекционные часы | Обязательно | Целое | ≥ 0 | 0 |
+| practice_hours | Практические часы | Обязательно | Целое | ≥ 0 | 0 |
 
-**Unique combinations:** `subject_id` (one subject can have only one hours record)
+Уникальные комбинации: subject_id (у одной дисциплины может быть только один набор часов)
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| lecture_hours | integer |
-| practice_hours | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| lecture_hours | Целое |
+| practice_hours | Целое |
+| is_active | Логический |
 
 ---
 
 #### Получение часов по ID
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Hours ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID часов | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| lecture_hours | integer |
-| practice_hours | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| lecture_hours | Целое |
+| practice_hours | Целое |
+| is_active | Логический |
 
 ---
 
 #### Получение часов по дисциплине
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| subject_id | Subject ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| subject_id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| lecture_hours | integer |
-| practice_hours | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| lecture_hours | Целое |
+| practice_hours | Целое |
+| is_active | Логический |
 
 ---
 
 #### Обновление часов
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Hours ID | Yes | integer | exists in DB | — |
-| lecture_hours | Lecture hours | No | integer | >= 0 | — |
-| practice_hours | Practice hours | No | integer | >= 0 | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID часов | Обязательно | Целое | Существует в БД | — |
+| lecture_hours | Лекционные часы | Необязательно | Целое | ≥ 0 | — |
+| practice_hours | Практические часы | Необязательно | Целое | ≥ 0 | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| lecture_hours | integer |
-| practice_hours | integer |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| lecture_hours | Целое |
+| practice_hours | Целое |
+| is_active | Логический |
 
 ---
 
 #### Удаление часов
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Hours ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID часов | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| success | boolean |
+| Параметр | Тип |
+|----------|-----|
+| success | Логический |
 
 ---
 
 #### Добавление формы контроля
 
-**Information required for adding an assessment**
+Информация требуемая для добавления формы контроля
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| subject_id | Subject ID | Yes | integer | exists in DB | — |
-| type | Assessment type | Yes | enum | exam / zachet | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| subject_id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
+| type | Тип контроля | Обязательно | Строка | exam / zachet | — |
 
-**Unique combinations:** `(subject_id, type)` — one subject cannot have two assessments of the same type
+Уникальные комбинации: (subject_id, type) — у одной дисциплины не может быть двух одинаковых типов контроля
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| type | enum |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| type | Строка |
+| is_active | Логический |
 
 ---
 
 #### Получение формы контроля по ID
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Assessment ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID формы контроля | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| type | enum |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| type | Строка |
+| is_active | Логический |
 
 ---
 
 #### Получение форм контроля по дисциплине
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| subject_id | Subject ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| subject_id | ID дисциплины | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| type | enum |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| type | Строка |
+| is_active | Логический |
 
 ---
 
 #### Обновление формы контроля
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Assessment ID | Yes | integer | exists in DB | — |
-| type | Assessment type | No | enum | exam / zachet | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID формы контроля | Обязательно | Целое | Существует в БД | — |
+| type | Тип контроля | Необязательно | Строка | exam / zachet | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| id | integer |
-| subject_id | integer |
-| type | enum |
-| is_active | boolean |
+| Параметр | Тип |
+|----------|-----|
+| id | Целое |
+| subject_id | Целое |
+| type | Строка |
+| is_active | Логический |
 
 ---
 
 #### Удаление формы контроля
 
-**Input parameters**
+Входные параметры
 
-| Parameter | Description | Required | Type | Constraint | Default |
-|-----------|-------------|----------|------|------------|---------|
-| id | Assessment ID | Yes | integer | exists in DB | — |
+| Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
+|----------|-----------|----------------|-----|-------------|-----------------------|
+| id | ID формы контроля | Обязательно | Целое | Существует в БД | — |
 
-**Response**
+Выходные данные
 
-| Parameter | Type |
-|-----------|------|
-| success | boolean |
+| Параметр | Тип |
+|----------|-----|
+| success | Логический |
 
 ---
 
-### ER-диаграмма
+## ER-диаграмма
 
 ```mermaid
 erDiagram
     CURRICULUM_PLAN {
         int id PK
         string name
-        int speciality_id FK
+        int speciality_id
         int year
         bool is_active
     }
