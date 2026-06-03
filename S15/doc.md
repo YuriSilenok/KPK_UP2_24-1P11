@@ -1,10 +1,9 @@
-
 **Связи (с внешними сервисами):**
-- teacher_id ссылается на Teacher.id
-- discipline_id ссылается на Discipline.id
-- group_id ссылается на Group.id
+- teacher_id ссылается на Teacher.id (внешний сервис)
+- discipline_id ссылается на Discipline.id (внешний сервис)
+- group_id ссылается на Group.id (внешний сервис)
 
-**Транзитивные таблицы:** отсутствуют
+**Транзитивные таблицы:** отсутствуют (в предметной области нет связи многие-ко-многим)
 
 ## API Description
 
@@ -93,7 +92,11 @@
 | group_id | int |
 | is_active | bool |
 # Load Assignment Service (Вариант №15)
+
 ## ER-диаграмма
+
+Поскольку сервис работает только со своей сущностью `LoadAssignment`, а ссылки `teacher_id`, `discipline_id`, `group_id` указывают на сущности в **других сервисах** (Teacher, Discipline, Group), диаграмма ограничена одной таблицей. Межсервисные связи не отображаются как реляционные, но описаны в тексте.
+
 ```mermaid
 erDiagram
     LoadAssignment {
