@@ -76,7 +76,7 @@
 |----------|-----|
 | success | Логический |
 
-*Мягкое удаление (is_active = false у всех связанных Curriculum). Возвращает true если группа найдена, false если не найдена.*
+*Мягкое удаление: у записи группы устанавливается is_active = False. У всех связанных записей Curriculum (curriculum.group_id = group.id) также устанавливается is_active = False. Возвращает true если группа найдена, false если не найдена.*
 
 ---
 
@@ -156,7 +156,7 @@
 |----------|-----|
 | success | Логический |
 
-*Мягкое удаление (is_active = false у всех связанных Curriculum). Возвращает true если дисциплина найдена, false если не найдена.*
+*Мягкое удаление: у записи дисциплины устанавливается is_active = False. У всех связанных записей Curriculum (curriculum.discipline_id = discipline.id) также устанавливается is_active = False. Возвращает true если дисциплина найдена, false если не найдена.*
 
 ---
 
@@ -246,7 +246,7 @@
 |----------|-----|
 | success | Логический |
 
-*Мягкое удаление (is_active = false у всех связанных Curriculum). Возвращает true если семестр найден, false если не найден.*
+*Мягкое удаление: у записи семестра устанавливается is_active = False. У всех связанных записей Curriculum (curriculum.semester_id = semester.id) также устанавливается is_active = False. Возвращает true если семестр найден, false если не найден.*
 
 ---
 
@@ -256,9 +256,9 @@
 
 | Параметр | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
 |----------|-----------|----------------|-----|-------------|-----------------------|
-| group_id | ID группы | Обязательно | Целое | > 0, ссылка на Group | — |
-| discipline_id | ID дисциплины | Обязательно | Целое | > 0, ссылка на Discipline | — |
-| semester_id | ID семестра | Обязательно | Целое | > 0, ссылка на Semester | — |
+| group_id | ID группы | Обязательно | Целое | > 0, ссылка на Group.id | — |
+| discipline_id | ID дисциплины | Обязательно | Целое | > 0, ссылка на Discipline.id | — |
+| semester_id | ID семестра | Обязательно | Целое | > 0, ссылка на Semester.id | — |
 | theory_hours | Часы теории | Обязательно | Целое | ≥ 0 | — |
 | practice_hours | Часы практики | Обязательно | Целое | ≥ 0 | — |
 | assessment_form | Форма отчетности | Обязательно | Строка | exam / credit | — |
@@ -271,12 +271,8 @@
 |----------|-----|
 | id | Целое |
 | group_id | Целое |
-| group_name | Строка |
 | discipline_id | Целое |
-| discipline_name | Строка |
 | semester_id | Целое |
-| semester_number | Целое |
-| semester_academic_year | Строка |
 | theory_hours | Целое |
 | practice_hours | Целое |
 | assessment_form | Строка |
@@ -296,12 +292,8 @@
 |----------|-----|
 | id | Целое |
 | group_id | Целое |
-| group_name | Строка |
 | discipline_id | Целое |
-| discipline_name | Строка |
 | semester_id | Целое |
-| semester_number | Целое |
-| semester_academic_year | Строка |
 | theory_hours | Целое |
 | practice_hours | Целое |
 | assessment_form | Строка |
@@ -315,7 +307,7 @@
 |----------|-----------|----------------|-----|-------------|-----------------------|
 | group_id | Фильтр по группе | Необязательно | Целое | > 0 | — |
 | discipline_id | Фильтр по дисциплине | Необязательно | Целое | > 0 | — |
-| semester_number | Фильтр по номеру семестра | Необязательно | Целое | 1-8 | — |
+| semester_id | Фильтр по семестру | Необязательно | Целое | > 0 | — |
 | assessment_form | Фильтр по форме отчетности | Необязательно | Строка | exam / credit | — |
 | theory_hours_min | Мин. часов теории | Необязательно | Целое | ≥ 0 | — |
 | theory_hours_max | Макс. часов теории | Необязательно | Целое | ≥ 0 | — |
@@ -331,12 +323,8 @@
 |----------|-----|
 | id | Целое |
 | group_id | Целое |
-| group_name | Строка |
 | discipline_id | Целое |
-| discipline_name | Строка |
 | semester_id | Целое |
-| semester_number | Целое |
-| semester_academic_year | Строка |
 | theory_hours | Целое |
 | practice_hours | Целое |
 | assessment_form | Строка |
@@ -361,12 +349,8 @@
 |----------|-----|
 | id | Целое |
 | group_id | Целое |
-| group_name | Строка |
 | discipline_id | Целое |
-| discipline_name | Строка |
 | semester_id | Целое |
-| semester_number | Целое |
-| semester_academic_year | Строка |
 | theory_hours | Целое |
 | practice_hours | Целое |
 | assessment_form | Строка |
@@ -386,7 +370,7 @@
 |----------|-----|
 | success | Логический |
 
-*Устанавливает is_active = false. Возвращает true если запись была активна, false если уже неактивна или не найдена.*
+*Устанавливает is_active = False. Возвращает true если запись была активна, false если уже неактивна или не найдена.*
 
 ---
 
@@ -397,17 +381,20 @@ erDiagram
     Group {
         int id PK
         string name UK
+        bool is_active
     }
     
     Discipline {
         int id PK
         string name UK
+        bool is_active
     }
     
     Semester {
         int id PK
         int semester_number
         string academic_year
+        bool is_active
     }
     
     Curriculum {
@@ -421,6 +408,6 @@ erDiagram
         bool is_active
     }
     
-    Group ||--o{ Curriculum : has
-    Discipline ||--o{ Curriculum : has
-    Semester ||--o{ Curriculum : has
+    Group ||--o{ Curriculum : "id → group_id"
+    Discipline ||--o{ Curriculum : "id → discipline_id"
+    Semester ||--o{ Curriculum : "id → semester_id"
