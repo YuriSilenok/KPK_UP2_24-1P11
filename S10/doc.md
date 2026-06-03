@@ -1,162 +1,59 @@
-# Employee Status Service
+from peewee import *
 
-## Назначение
+db = SqliteDatabase("employee_status.db")
 
-Сервис хранит информацию о статусе сотрудников:
+class BaseModel(Model):
+    class Meta:
+        database = db
 
-- должности;
-- ставки;
-- совместительство;
-- отпуска;
-- больничные.
+class Position(BaseModel):
+    id = AutoField()
+    name = CharField(unique=True)
+    is_active = BooleanField(default=True)
 
-Идентификатор сотрудника (`employee_id`) хранится как обычное поле.
+class EmployeeStatus(BaseModel):
+    id = AutoField()
+    employee_id = IntegerField()
+    position = ForeignKeyField(Position, backref="employee_statuses")
+    rate = FloatField()
+    is_part_time = BooleanField(default=False)
+    start_date = DateField()
+    end_date = DateField(null=True)
+    is_active = BooleanField(default=True)
 
----
+class Vacation(BaseModel):
+    id = AutoField()
+    employee_id = IntegerField()
+    start_date = DateField()
+    end_date = DateField()
+    vacation_type = CharField()
+    is_active = BooleanField(default=True)
 
-## API
+class SickLeave(BaseModel):
+    id = AutoField()
+    employee_id = IntegerField()
+    start_date = DateField()
+    end_date = DateField()
+    document_number = CharField()
+    is_active = BooleanField(default=True)
 
-### Position
+def init_db():
+    db.connect(reuse_if_open=True)
 
-#### Создать должность
+    db.create_tables([
+        Position,
+        EmployeeStatus,
+        Vacation,
+        SickLeave
+    ])
 
-POST /positions
 
-```json
-{
-  "name": "Преподаватель"
-}
-```
-
-#### Получить список должностей
-
-GET /positions
-
-#### Получить должность по ID
-
-GET /positions/{id}
-
-#### Изменить должность
-
-PUT /positions/{id}
-
-#### Удалить должность
-
-DELETE /positions/{id}
-
----
-
-### Employee Status
-
-#### Создать статус сотрудника
-
-POST /employee-statuses
-
-```json
-{
-  "employee_id": 10,
-  "position_id": 1,
-  "rate": 1.0,
-  "is_part_time": false,
-  "start_date": "2025-09-01",
-  "end_date": null
-}
-```
-
-#### Получить список статусов
-
-GET /employee-statuses
-
-#### Получить статус по ID
-
-GET /employee-statuses/{id}
-
-#### Изменить статус
-
-PUT /employee-statuses/{id}
-
-#### Удалить статус
-
-DELETE /employee-statuses/{id}
-
----
-
-### Vacation
-
-#### Создать отпуск
-
-POST /vacations
-
-```json
-{
-  "employee_id": 10,
-  "start_date": "2025-07-01",
-  "end_date": "2025-07-28",
-  "vacation_type": "annual"
-}
-```
-
-#### Получить список отпусков
-
-GET /vacations
-
-#### Получить отпуск по ID
-
-GET /vacations/{id}
-
-#### Изменить отпуск
-
-PUT /vacations/{id}
-
-#### Удалить отпуск
-
-DELETE /vacations/{id}
-
----
-
-### Sick Leave
-
-#### Создать больничный
-
-POST /sick-leaves
-
-```json
-{
-  "employee_id": 10,
-  "start_date": "2025-10-10",
-  "end_date": "2025-10-20",
-  "document_number": "BL-12345"
-}
-```
-
-#### Получить список больничных
-
-GET /sick-leaves
-
-#### Получить больничный по ID
-
-GET /sick-leaves/{id}
-
-#### Изменить больничный
-
-PUT /sick-leaves/{id}
-
-#### Удалить больничный
-
-DELETE /sick-leaves/{id}
-
----
-
-## ER-диаграмма
-
-```mermaid
 erDiagram
-
-    Position ||--o{ EmployeeStatus : "id -> position_id"
 
     Position {
         int id PK
         string name
+        boolean is_active
     }
 
     EmployeeStatus {
@@ -176,6 +73,7 @@ erDiagram
         date start_date
         date end_date
         string vacation_type
+        boolean is_active
     }
 
     SickLeave {
@@ -184,5 +82,7 @@ erDiagram
         date start_date
         date end_date
         string document_number
+        boolean is_active
     }
-```
+
+    Position ||--o{ EmployeeStatus : "id -> position_id"
