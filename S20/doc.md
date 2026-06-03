@@ -123,7 +123,6 @@ erDiagram
         date end_date
         boolean is_semester
         boolean is_module
-        string period_type
         int parent_period_id FK
         boolean is_active
     }
