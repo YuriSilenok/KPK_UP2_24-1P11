@@ -1,5 +1,3 @@
-
-```python
 import datetime
 from peewee import *
 
@@ -10,15 +8,17 @@ class BaseModel(Model):
     class Meta:
         database = db
 
-class Employee(Model):
+class Employee(BaseModel):
     class Meta:
         db_table = "employees"
 
     id = AutoField()
+    # Замечание 2: Поле является логической связью со сторонним микросервисом Profile Service.
+    # Намеренно объявлено как IntegerField без ForeignKeyField для соблюдения архитектуры микросервисов.
     user_id = IntegerField(unique=True, null=False) 
     hire_date = DateField(null=False)
     status = CharField(max_length=20, default='active', null=False) 
-    is_active = BooleanField(default=True)
+    is_deleted = BooleanField(default=False)
     updated_at = DateTimeField(default=datetime.datetime.now) 
 
     def save(self, *args, **kwargs):
@@ -37,7 +37,7 @@ class Employee(Model):
 
     @property
     def positions(self):
-        """Вычисляемое свойство (property) для API, объединяющее таблицы"""
+        """Свойство (property) уровня приложения для динамической агрегации должностей"""
         result = []
         query = (EmployeePosition
                  .select(EmployeePosition, Position)
@@ -58,12 +58,7 @@ class Position(BaseModel):
 
     id = AutoField()
     title = CharField(max_length=100, null=False)
-    description = TextField(null=False)
-
-    def save(self, *args, **kwargs):
-        if not self.title or not (1 <= len(str(self.title)) <= 100):
-            raise ValueError("Длина названия должности должна быть от 1 до 100 символов")
-        return super().save(*args, **kwargs)
+    description = TextField(null=True)
 
 class EmployeePosition(BaseModel):
     class Meta:
@@ -79,8 +74,6 @@ class EmployeePosition(BaseModel):
     def save(self, *args, **kwargs):
         if self.end_date is not None and self.end_date < self.start_date:
             raise ValueError("Дата окончания должности не может быть раньше даты начала")
-        if self.load_factor <= 0:
-            raise ValueError("Ставка load_factor должна быть положительным числом")
         return super().save(*args, **kwargs)
 
 class Vacation(BaseModel):
@@ -92,7 +85,6 @@ class Vacation(BaseModel):
     start_date = DateField(null=False)
     end_date = DateField(null=False)
     type = CharField(max_length=50, null=False)
-    is_active = BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
@@ -107,8 +99,7 @@ class SickLeave(BaseModel):
     employee = ForeignKeyField(Employee, backref='sick_leaves', on_delete='CASCADE', null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    diagnosis = TextField(null=False)
-    is_active = BooleanField(default=True)
+    diagnosis = TextField(null=True)
 
     def save(self, *args, **kwargs):
         if self.end_date < self.start_date:
