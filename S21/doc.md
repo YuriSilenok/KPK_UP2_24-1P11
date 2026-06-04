@@ -2,9 +2,7 @@
 
 ### Инициализация БД
 
-При первом запуске приложения функция `init_db()` создаёт таблицы и добавляет начальные данные в справочник HolidayType:
-- name='Праздник', code='holiday'
-- name='Каникулы', code='vacation'
+При первом запуске приложения функция `init_db()` создаёт таблицы в базе данных.
 
 ### Работа с праздниками (Holiday)
 
@@ -73,8 +71,8 @@
 
 | Параметр | Пояснение | Тип |
 |----------|-----------|-----|
-| date_from | Дата начала периода | date |
-| date_to | Дата окончания периода | date |
+| date_from | Дата начала периода поиска | date |
+| date_to | Дата окончания периода поиска | date |
 | type_id | Тип праздника (ссылка на HolidayType) | integer |
 
 Информация возвращается в виде списка Holiday
@@ -161,10 +159,10 @@
 |----------|-----------|-----|
 | type_id | Тип периода (ссылка на HolidayType) | integer |
 | is_active | Фильтр по статусу активности | boolean |
-| start_date_from | Фильтр по дате начала (от) | date |
-| start_date_to | Фильтр по дате начала (до) | date |
-| end_date_from | Фильтр по дате окончания (от) | date |
-| end_date_to | Фильтр по дате окончания (до) | date |
+| start_date_from | Начало периода попадает в указанный диапазон (от) | date |
+| start_date_to | Начало периода попадает в указанный диапазон (до) | date |
+| end_date_from | Конец периода попадает в указанный диапазон (от) | date |
+| end_date_to | Конец периода попадает в указанный диапазон (до) | date |
 
 Информация возвращается в виде списка VacationPeriod
 
@@ -278,5 +276,5 @@ erDiagram
         boolean is_active
     }
     
-    HOLIDAY_TYPE ||--o{ HOLIDAY : "id → type_id"
-    HOLIDAY_TYPE ||--o{ VACATION_PERIOD : "id → type_id"
+    HOLIDAY_TYPE ||--o{ HOLIDAY : "type_id -> id"
+    HOLIDAY_TYPE ||--o{ VACATION_PERIOD : "type_id -> id"
