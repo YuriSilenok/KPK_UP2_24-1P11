@@ -25,12 +25,13 @@ class BaseModel(Model):
 class WorkProgram(BaseModel):
     """Класс рабочей программы дисциплин колледжа"""
     id = AutoField()
-    title = CharField(null=False)
-    file_path = CharField(null=False, unique=True)
+    # Разрешаем null=True для соответствия необязательному статусу параметров в PATCH
+    title = CharField(null=True)
+    file_path = CharField(null=True, unique=True)
     
     # Ограничение формата версии (длина строки от 3 символов, например "1.0")
     version = CharField(
-        null=False, 
+        null=True, 
         default="1.0",
         constraints=[Check("length(version) >= 3 AND version LIKE '%.%'")]
     )
@@ -40,11 +41,11 @@ class WorkProgram(BaseModel):
     created_at = DateTimeField(default=datetime.datetime.now, null=False)
 
     def delete_instance(self, *args, **kwargs):
-        """Мягкое каскадное удаление программы и ее назначений"""
+        """Мягкое удаление программы и ее назначений"""
         with DB.atomic():
             self.is_deleted = True
             self.save()
-            # Каскадное логическое обновление флага вместо жесткого удаления CASCADE
+            # Соответствие имени поля work_program
             ProgramAssignment.update(is_deleted=True).where(ProgramAssignment.work_program == self.id).execute()
         return True
 
@@ -60,7 +61,7 @@ class ProgramAssignment(BaseModel):
     """Связь программ с внешними ID специальностей и дисциплин (3НФ)"""
     assignment_id = AutoField()
     
-    # on_delete изменен на RESTRICT для исключения жесткого физического каскадного удаления
+    # Убран on_delete='CASCADE', имя поля строго согласуется с work_program_id
     work_program = ForeignKeyField(
         WorkProgram,
         backref='assignments',
