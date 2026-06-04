@@ -19,14 +19,15 @@ class Holiday(BaseModel):
     id = AutoField()
     name = CharField(max_length=100, null=False)
     date = DateField(null=False)
-    type = ForeignKeyField(HolidayType, backref='holidays', null=False)
+    # Исправлено: имя атрибута type_id соответствует doc.md и схеме БД
+    type_id = ForeignKeyField(HolidayType, backref='holidays', null=False, column_name='type_id')
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
         table_name = 'holiday'
         indexes = (
             (('date',), False),
-            (('type',), False),
+            (('type_id',), False),  # Исправлено имя поля в индексе
         )
 
 class VacationPeriod(BaseModel):
@@ -34,7 +35,8 @@ class VacationPeriod(BaseModel):
     name = CharField(max_length=100, null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    type = ForeignKeyField(HolidayType, backref='vacations', null=False)
+    # Исправлено: имя атрибута type_id соответствует doc.md и схеме БД
+    type_id = ForeignKeyField(HolidayType, backref='vacations', null=False, column_name='type_id')
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
@@ -42,11 +44,11 @@ class VacationPeriod(BaseModel):
         indexes = (
             (('start_date',), False),
             (('end_date',), False),
-            (('type',), False),
+            (('type_id',), False),  # Исправлено имя поля в индексе
         )
 
     def save(self, *args, **kwargs):
-        # Data integrity constraint
+        # Data integrity constraint (ограничение целостности данных)
         if self.end_date < self.start_date:
             raise ValueError("end_date must be >= start_date")
         return super().save(*args, **kwargs)
@@ -55,6 +57,7 @@ def init_db():
     db.connect()
     db.create_tables([HolidayType, Holiday, VacationPeriod], safe=True)
     
+    # Начальные данные строго по требованиям
     if HolidayType.select().count() == 0:
         HolidayType.create(name='Праздник', code='holiday')
         HolidayType.create(name='Каникулы', code='vacation')
