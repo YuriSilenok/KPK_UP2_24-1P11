@@ -279,4 +279,4 @@
 | is_active | boolean |
 
 ### ER-диаграмма
-
+![Диаграмма](erd.png)
