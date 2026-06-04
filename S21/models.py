@@ -49,21 +49,11 @@ class VacationPeriod(BaseModel):
         )
 
     def save(self, *args, **kwargs):
-        """
-        Валидация данных перед сохранением
-        """
-        if not self.name or len(self.name.strip()) == 0:
-            raise ValueError("name не может быть пустым")
-        if len(self.name) > 100:
-            raise ValueError("name не должен превышать 100 символов")
         if self.end_date < self.start_date:
             raise ValueError("end_date должен быть >= start_date")
         return super().save(*args, **kwargs)
 
 def init_db():
-    """
-    Инициализация базы данных
-    """
     db.connect()
     db.create_tables([HolidayType, Holiday, VacationPeriod], safe=True)
     
