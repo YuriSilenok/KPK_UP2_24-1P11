@@ -27,7 +27,7 @@ class Group(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'group'
+        table_name = 'groups'
 
 
 class Discipline(BaseModel):
@@ -37,7 +37,7 @@ class Discipline(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'discipline'
+        table_name = 'disciplines'
 
 
 class Semester(BaseModel):
@@ -47,7 +47,7 @@ class Semester(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'semester'
+        table_name = 'semesters'
         constraints = [SQL('UNIQUE(semester)')]
 
 
@@ -66,7 +66,7 @@ class Curriculum(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'curriculum'
+        table_name = 'curriculums'
         constraints = [
             SQL('UNIQUE(group_id, discipline_id, semester_id)')
         ]
