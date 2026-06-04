@@ -12,17 +12,27 @@ class AcademicPeriod(BaseModel):
     name = CharField(max_length=100, null=False)
     start_date = DateField(null=False)
     end_date = DateField(null=False)
-    is_semester = BooleanField(default=False)
-    is_module = BooleanField(default=False)
-    parent_period_id = ForeignKeyField('self', null=NULL, backref='child')
+    is_semester = BooleanField()
+    is_module = BooleanField()
+    parent_period_id = ForeignKeyField('self', null=True, backref='children')
     is_active = BooleanField(default=True)
 
     class Meta:
         indexes = ((('name',), True),)
+        constraints = [
+            Check("start_date >= '2000-01-01'"),
+            Check("end_date > start_date")
+        ]
+
     def soft_delete(self):
-        self.is_active = False
-        self.save()
-        return True
+        if not self.id:
+            return False
+            
+        try:
+            self.is_active = False
+            return bool(self.save()) 
+        except DatabaseError:
+            return False
 
 def init_db():
     db.connect()
