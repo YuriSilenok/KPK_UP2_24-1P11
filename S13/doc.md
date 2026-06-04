@@ -1,4 +1,4 @@
-# Вариант №13 — Work Program Service (Сервис рабочих программ). Вот напиши в док сверху
+# Вариант №13 — Work Program Service (Сервис рабочих программ)
 
 ---
 
@@ -6,15 +6,15 @@
 
 ```mermaid
 erDiagram
-    WORK_PROGRAM {
+    work_programs {
         int id PK
         string title
-        string file_path UK
+        string file_path
         string version
         boolean is_deleted
-        DateTimeField created_at
+        datetime created_at
     }
-    PROGRAM_ASSIGNMENT {
+    program_assignments {
         int assignment_id PK
         int work_program_id FK
         int specialty_id
@@ -22,19 +22,19 @@ erDiagram
         boolean is_deleted
     }
 
-    WORK_PROGRAM ||--o{ PROGRAM_ASSIGNMENT : "id -> work_program_id"
+    work_programs ||--o{ program_assignments : "id -> work_program_id"
 ```
 
 ### Список реляционных связей в которых указано, какие поля из каких таблиц связываются:
-* Поле `work_program_id` из транзитивной таблицы `PROGRAM_ASSIGNMENT` связывается с первичным ключом `id` из главной таблицы `WORK_PROGRAM` (Явное указание связи: `WORK_PROGRAM.id -> PROGRAM_ASSIGNMENT.work_program_id`).
-* Поля `specialty_id` и `discipline_id` в таблице `PROGRAM_ASSIGNMENT` не имеют связей на диаграмме и объявлены как обычные `int`, так как ссылаются на сущности из независимых внешних микросервисов (в `models.py` им строго соответствует тип `IntegerField`).
+* Поле `work_program_id` из транзитивной таблицы `program_assignments` связывается с первичным ключом `id` из главной таблицы `work_programs` (Явное указание связи: `work_programs.id -> program_assignments.work_program_id`).
+* Поля `specialty_id` и `discipline_id` в таблице `program_assignments` не имеют связей на диаграмме и объявлены как обычные `int`, так как ссылаются на сущности из независимых внешних микросервисов.
 
 ### Комментарий по поводу соответствия таблиц 3НФ:
-Все таблицы находятся в 3НФ. Поле `is_deleted` в таблицах `WORK_PROGRAM` и `PROGRAM_ASSIGNMENT` является техническим атрибутом метаданных (логическим флагом состояния записи), который зависит исключительно от первичного ключа каждой из таблиц (`id` и `assignment_id` соответственно), не содержит транзитивных зависимостей и не нарушает правила третьей нормальной формы.
+Все таблицы находятся в 3НФ. Поле `is_deleted` в таблицах `work_programs` и `program_assignments` является техническим атрибутом метаданных (логическим флагом состояния записи), который зависит исключительно от первичного ключа каждой из таблиц (`id` и `assignment_id` соответственно), не содержит транзитивных зависимостей и не нарушает правила третьей нормальной формы.
 
 ---
 
-## Описание API для таблицы WorkProgram (Рабочая программа)
+## Описание API для таблицы work_programs (Рабочая программа)
 
 ### 1. Добавить сущность
 
@@ -44,9 +44,9 @@ erDiagram
 
 | Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| title | Название программы | Да | string | Not NULL | — |
-| file_path | Путь к файлу на сервере | Да | string | Not NULL, уникальный | — |
-| version | Версия документа | Да | string | Not NULL, формат x.x | "1.0" |
+| title | Название программы | Да | string | — | — |
+| file_path | Путь к файлу на сервере | Да | string | уникальный | — |
+| version | Версия документа | Да | string | формат x.x | "1.0" |
 
 **Уникальные комбинации параметров (если есть) — перечислить:**
 * `(title, version)` — в системе не может быть двух программ с одинаковым названием и одинаковой версией.
@@ -63,7 +63,7 @@ erDiagram
 | file_path | string |
 | version | string |
 | is_deleted | boolean |
-| created_at | DateTimeField |
+| created_at | datetime |
 
 ### 2. Изменить сущность по ID
 
@@ -73,9 +73,9 @@ erDiagram
 
 | Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
 | :--- | :--- | :--- | :--- | :--- |
-| title | Название программы | Да (в БД) / Нет (в PATCH) | string | В базе данных null=False |
-| file_path | Путь к файлу на сервере | Да (в БД) / Нет (в PATCH) | string | В базе данных null=False, уникальный |
-| version | Версия документа | Да (в БД) / Нет (в PATCH) | string | В базе данных null=False, формат x.x |
+| title | Название программы | Нет | string | — |
+| file_path | Путь к файлу на сервере | Нет | string | уникальный |
+| version | Версия документа | Нет | string | формат x.x |
 
 **Информация при успешном изменении (таблица):**
 
@@ -88,10 +88,10 @@ erDiagram
 | file_path | string |
 | version | string |
 | is_deleted | boolean |
-| created_at | DateTimeField |
+| created_at | datetime |
 
 ### 3. Удалить сущность по ID
-Реализовано мягкое удаление. При вызове операции удаления поле `is_deleted` у программы устанавливается в `True`, а также на уровне бизнес-логики моделей происходит каскадный перевод флага `is_deleted` в значение `True` для всех зависимых назначений в таблице `ProgramAssignment` (физическое удаление записей из базы данных не производится).
+Реализовано мягкое удаление. При удалении поле `is_deleted` устанавливается в `True`.
 * **Возвращаемое значение:** `true` (если запись найдена и помечена удалённой), иначе `false`.
 
 ### 4. Получить сущность по ID
@@ -107,7 +107,7 @@ erDiagram
 | file_path | Путь к файлу на сервере | string |
 | version | Версия документа | string |
 | is_deleted | Флаг мягкого удаления | boolean |
-| created_at | Дата и время создания | DateTimeField |
+| created_at | Дата и время создания | datetime |
 
 ### 5. Получить список сущностей по заданным параметрам
 
@@ -132,7 +132,7 @@ erDiagram
 
 ---
 
-## Описание API для таблицы ProgramAssignment (Назначение программы)
+## Описание API для таблицы program_assignments (Назначение программы)
 
 ### 1. Добавить сущность
 
@@ -143,8 +143,8 @@ erDiagram
 | Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение | Значение по умолчанию |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | work_program_id | ID связанной рабочей программы | Да | int | Foreign Key | — |
-| specialty_id | ID внешней специальности | Да | int | Not NULL | — |
-| discipline_id | ID внешней дисциплины | Да | int | Not NULL | — |
+| specialty_id | ID внешней специальности | Да | int | — | — |
+| discipline_id | ID внешней дисциплины | Да | int | — | — |
 
 **Уникальные комбинации параметров (если есть) — перечислить:**
 * `(work_program_id, specialty_id, discipline_id)` — исключает создание дублирующих связей.
@@ -169,9 +169,9 @@ erDiagram
 
 | Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
 | :--- | :--- | :--- | :--- | :--- |
-| work_program_id | ID связанной рабочей программы | Да (в БД) / Нет (в PATCH) | int | В базе данных Foreign Key |
-| specialty_id | ID внешней специальности | Да (в БД) / Нет (в PATCH) | int | В базе данных null=False |
-| discipline_id | ID внешней дисциплины | Да (в БД) / Нет (в PATCH) | int | В базе данных null=False |
+| work_program_id | ID связанной рабочей программы | Нет | int | Foreign Key |
+| specialty_id | ID внешней специальности | Нет | int | — |
+| discipline_id | ID внешней дисциплины | Нет | int | — |
 
 **Информация при успешном изменении (таблица):**
 
