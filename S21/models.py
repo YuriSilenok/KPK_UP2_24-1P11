@@ -46,7 +46,7 @@ class VacationPeriod(BaseModel):
         )
 
     def save(self, *args, **kwargs):
-        # Data integrity constraint: end_date must be >= start_date
+        # Data integrity constraint
         if self.end_date < self.start_date:
             raise ValueError("end_date must be >= start_date")
         return super().save(*args, **kwargs)
@@ -55,10 +55,9 @@ def init_db():
     db.connect()
     db.create_tables([HolidayType, Holiday, VacationPeriod], safe=True)
     
-    # Add default types
     if HolidayType.select().count() == 0:
-        HolidayType.create(name='Holiday', code='holiday')
-        HolidayType.create(name='Vacation', code='vacation')
+        HolidayType.create(name='Праздник', code='holiday')
+        HolidayType.create(name='Каникулы', code='vacation')
     
     db.close()
 
