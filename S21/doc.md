@@ -248,7 +248,6 @@
 
 ### ER-диаграмма
 
-```mermaid
 erDiagram
     HOLIDAY_TYPE {
         int id PK
@@ -274,5 +273,7 @@ erDiagram
         boolean is_active
     }
     
+    HOLIDAY_TYPE ||--o{ HOLIDAY : "id → type_id"
+    HOLIDAY_TYPE ||--o{ VACATION_PERIOD : "id → type_id"
     HOLIDAY_TYPE ||--o{ HOLIDAY : "type_id -> id"
     HOLIDAY_TYPE ||--o{ VACATION_PERIOD : "type_id -> id"
