@@ -301,8 +301,5 @@ erDiagram
         int type FK "Ссылка на HolidayType.id"
         boolean is_active "Статус активности (soft delete)"
     }
-    %% Один тип праздника может классифицировать множество празднико
     HolidayType ||--|{ Holiday : "классифицирует"
-    
-    %% Один тип праздника может классифицировать множество периодов каникул
     HolidayType ||--|{ VacationPeriod : "классифицирует"
