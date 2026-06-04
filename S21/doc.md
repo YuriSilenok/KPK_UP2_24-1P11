@@ -279,27 +279,4 @@
 | is_active | boolean |
 
 ### ER-диаграмма
-erDiagram
-    HolidayType {
-        int id PK "Идентификатор (Primary Key)"
-        string name "Название (не пустое, до 50 симв.)"
-        string code "Код (уникальный, не пустой, до 8 симв.)"
-        boolean is_active "Статус активности"
-    }
-    Holiday {
-        int id PK "Идентификатор (Primary Key)"
-        string name "Название (не пустое, до 100 симв.)"
-        date date "Конкретная дата праздника"
-        int type FK "Ссылка на HolidayType.id"
-        boolean is_active "Статус активности (soft delete)"
-    }
-    VacationPeriod {
-        int id PK "Идентификатор (Primary Key)"
-        string name "Название (не пустое, до 100 симв.)"
-        date start_date "Дата начала каникул"
-        date end_date "Дата окончания (>= start_date)"
-        int type FK "Ссылка на HolidayType.id"
-        boolean is_active "Статус активности (soft delete)"
-    }
-    HolidayType ||--|{ Holiday : "классифицирует"
-    HolidayType ||--|{ VacationPeriod : "классифицирует"
+
