@@ -1,4 +1,5 @@
 from peewee import *
+from peewee import IntegrityError
 
 db = SqliteDatabase('holiday.db')
 
@@ -30,7 +31,10 @@ class HolidayType(BaseModel):
             raise ValueError("code не может быть пустым")
         if len(self.code) > 8:
             raise ValueError("code не должен превышать 8 символов")
-        return super().save(*args, **kwargs)
+        try:
+            return super().save(*args, **kwargs)
+        except IntegrityError:
+            raise ValueError("HolidayType с таким кодом уже существует")
 
     @staticmethod
     def create_holiday_type(name, code, is_active=True):
@@ -47,7 +51,10 @@ class HolidayType(BaseModel):
             code=code,
             is_active=is_active
         )
-        holiday_type.save()
+        try:
+            holiday_type.save()
+        except IntegrityError:
+            raise ValueError("HolidayType с таким кодом уже существует")
         return holiday_type
 
     @staticmethod
@@ -73,7 +80,10 @@ class HolidayType(BaseModel):
         if is_active is not None:
             holiday_type.is_active = is_active
         
-        holiday_type.save()
+        try:
+            holiday_type.save()
+        except IntegrityError:
+            raise ValueError("HolidayType с таким кодом уже существует")
         return holiday_type
 
     @staticmethod
@@ -369,22 +379,10 @@ class VacationPeriod(BaseModel):
 def init_db():
     """
     Инициализация базы данных.
-    Создаёт таблицы и добавляет типы праздников по умолчанию:
-    - name='Праздник', code='holiday'
-    - name='Каникулы', code='vacation'
+    Создаёт таблицы.
     """
     with db.atomic():
         db.create_tables([HolidayType, Holiday, VacationPeriod], safe=True)
-        
-        # Добавляем типы по умолчанию (используем get_or_create для избежания гонки)
-        HolidayType.get_or_create(
-            code='holiday',
-            defaults={'name': 'Праздник', 'is_active': True}
-        )
-        HolidayType.get_or_create(
-            code='vacation',
-            defaults={'name': 'Каникулы', 'is_active': True}
-        )
 
 
 if __name__ == '__main__':
