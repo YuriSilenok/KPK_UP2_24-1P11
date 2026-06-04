@@ -81,13 +81,13 @@
 
 Информация возвращается в виде списка Holiday
 
-| Параметр | Тип | Обязательность |
-|----------|-----|----------------|
-| id | integer | — |
-| name | string | — |
-| date | date | — |
-| type | integer | — |
-| is_active | boolean | — |
+| Параметр | Тип |
+|----------|-----|
+| id | integer |
+| name | string |
+| date | date |
+| type | integer |
+| is_active | boolean |
 
 ### Работа с периодами каникул (VacationPeriod)
 
@@ -166,14 +166,14 @@
 
 Информация возвращается в виде списка VacationPeriod
 
-| Параметр | Тип | Обязательность |
-|----------|-----|----------------|
-| id | integer | — |
-| name | string | — |
-| start_date | date | — |
-| end_date | date | — |
-| type | integer | — |
-| is_active | boolean | — |
+| Параметр | Тип |
+|----------|-----|
+| id | integer |
+| name | string |
+| start_date | date |
+| end_date | date |
+| type | integer |
+| is_active | boolean |
 
 ### Работа с типами праздников (HolidayType)
 
@@ -241,15 +241,40 @@
 
 Информация возвращается в виде списка HolidayType
 
-| Параметр | Тип | Обязательность |
-|----------|-----|----------------|
-| id | integer | — |
-| name | string | — |
-| code | string | — |
-| is_active | boolean | — |
+| Параметр | Тип |
+|----------|-----|
+| id | integer |
+| name | string |
+| code | string |
+| is_active | boolean |
 
 ### ER-диаграмма
 
-Файл `erd.png` добавлен в проект.
-
-![ER-диаграмма](erd.png)
+```mermaid
+erDiagram
+    HOLIDAY_TYPE {
+        int id PK
+        string name
+        string code
+        boolean is_active
+    }
+    
+    HOLIDAY {
+        int id PK
+        string name
+        date date
+        int type_id FK
+        boolean is_active
+    }
+    
+    VACATION_PERIOD {
+        int id PK
+        string name
+        date start_date
+        date end_date
+        int type_id FK
+        boolean is_active
+    }
+    
+    HOLIDAY_TYPE ||--o{ HOLIDAY : "has_type"
+    HOLIDAY_TYPE ||--o{ VACATION_PERIOD : "has_type"
