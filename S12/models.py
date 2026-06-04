@@ -49,15 +49,14 @@ class Semester(BaseModel):
     class Meta:
         table_name = 'semesters'
         constraints = [SQL('UNIQUE(semester)')]
-
-
 class Curriculums(BaseModel):
-    """Запись учебного плана (Класс переименован по требованию ТЗ)"""
+    """Запись учебного плана"""
     id = AutoField(primary_key=True)
 
-    group = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False)
-    discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', column_name='discipline_id', null=False)
-    semester = ForeignKeyField(Semester, backref='curriculums', on_delete='CASCADE', column_name='semester_id', null=False)
+    # Внешние ключи с исправленным синтаксисом backref и проверкой на положительность ID (> 0)
+    group = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False, constraints=[Check('group_id > 0')])
+    discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', column_name='discipline_id', null=False, constraints=[Check('discipline_id > 0')])
+    semester = ForeignKeyField(Semester, backref='curriculums', on_delete='CASCADE', column_name='semester_id', null=False, constraints=[Check('semester_id > 0')])
 
     theory_hours = IntegerField(null=False, constraints=[Check('theory_hours >= 0')])
     practice_hours = IntegerField(null=False, constraints=[Check('practice_hours >= 0')])
@@ -70,6 +69,12 @@ class Curriculums(BaseModel):
         constraints = [
             SQL('UNIQUE(group_id, discipline_id, semester_id)')
         ]
+        # Добавлены индексы для оптимизации фильтрации по часам теории, практики и статусу активности
+        indexes = (
+            (('theory_hours',), False),
+            (('practice_hours',), False),
+            (('is_active',), False),
+        )
 
 
 def init_db():
