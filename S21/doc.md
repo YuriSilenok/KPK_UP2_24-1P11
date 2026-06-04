@@ -16,7 +16,7 @@
 |----------|-----------|----------------|-----|-------------|----------------------|
 | name | Название праздника | Да | string | Не пустое, до 100 символов | — |
 | date | Дата праздника | Да | date | Конкретная дата | — |
-| type | Тип (ссылка на HolidayType) | Да | integer | Ссылка на HolidayType | — |
+| type_id | Тип (ссылка на HolidayType) | Да | integer | Ссылка на HolidayType | — |
 | is_active | Статус активности | Нет | boolean | — | True |
 
 Информация возвращаемая в случае удачного создания Holiday
@@ -26,7 +26,7 @@
 | id | integer |
 | name | string |
 | date | date |
-| type | integer |
+| type_id | integer |
 | is_active | boolean |
 
 #### Изменение Holiday по ID
@@ -38,7 +38,7 @@
 | id | Идентификатор | Да | integer | Существует в БД |
 | name | Название праздника | Нет | string | Не пустое, до 100 символов |
 | date | Дата праздника | Нет | date | Не пустое |
-| type | Тип (ссылка на HolidayType) | Нет | integer | Ссылка на HolidayType |
+| type_id | Тип (ссылка на HolidayType) | Нет | integer | Ссылка на HolidayType |
 | is_active | Статус активности | Нет | boolean | — |
 
 Информация возвращаемая в случае удачного изменения Holiday
@@ -48,7 +48,7 @@
 | id | integer |
 | name | string |
 | date | date |
-| type | integer |
+| type_id | integer |
 | is_active | boolean |
 
 #### Удаление Holiday по ID
@@ -64,7 +64,7 @@
 | id | Идентификатор | integer |
 | name | Название праздника | string |
 | date | Дата праздника | date |
-| type | Тип (ссылка на HolidayType) | integer |
+| type_id | Тип (ссылка на HolidayType) | integer |
 | is_active | Статус активности | boolean |
 
 #### Получить список Holiday по заданным параметрам
@@ -75,7 +75,7 @@
 |----------|-----------|-----|
 | date_from | Дата начала периода | date |
 | date_to | Дата окончания периода | date |
-| type | Тип праздника (ссылка на HolidayType) | integer |
+| type_id | Тип праздника (ссылка на HolidayType) | integer |
 
 Информация возвращается в виде списка Holiday
 
@@ -84,7 +84,7 @@
 | id | integer |
 | name | string |
 | date | date |
-| type | integer |
+| type_id | integer |
 | is_active | boolean |
 
 ### Работа с периодами каникул (VacationPeriod)
@@ -98,7 +98,7 @@
 | name | Название периода | Да | string | Не пустое, до 100 символов | — |
 | start_date | Дата начала каникул | Да | date | Дата начала | — |
 | end_date | Дата окончания каникул | Да | date | >= start_date | — |
-| type | Тип (ссылка на HolidayType) | Да | integer | Ссылка на HolidayType | — |
+| type_id | Тип (ссылка на HolidayType) | Да | integer | Ссылка на HolidayType | — |
 | is_active | Статус активности | Нет | boolean | — | True |
 
 Информация возвращаемая в случае удачного создания VacationPeriod
@@ -109,7 +109,7 @@
 | name | string |
 | start_date | date |
 | end_date | date |
-| type | integer |
+| type_id | integer |
 | is_active | boolean |
 
 #### Изменение VacationPeriod по ID
@@ -122,7 +122,7 @@
 | name | Название периода | Нет | string | Не пустое, до 100 символов |
 | start_date | Дата начала каникул | Нет | date | Не пустое |
 | end_date | Дата окончания каникул | Нет | date | Не пустое, >= start_date |
-| type | Тип (ссылка на HolidayType) | Нет | integer | Ссылка на HolidayType |
+| type_id | Тип (ссылка на HolidayType) | Нет | integer | Ссылка на HolidayType |
 | is_active | Статус активности | Нет | boolean | — |
 
 Информация возвращаемая в случае удачного изменения VacationPeriod
@@ -133,7 +133,7 @@
 | name | string |
 | start_date | date |
 | end_date | date |
-| type | integer |
+| type_id | integer |
 | is_active | boolean |
 
 #### Удаление VacationPeriod по ID
@@ -150,7 +150,7 @@
 | name | Название периода | string |
 | start_date | Дата начала каникул | date |
 | end_date | Дата окончания каникул | date |
-| type | Тип (ссылка на HolidayType) | integer |
+| type_id | Тип (ссылка на HolidayType) | integer |
 | is_active | Статус активности | boolean |
 
 #### Получить список VacationPeriod
@@ -159,8 +159,12 @@
 
 | Параметр | Пояснение | Тип |
 |----------|-----------|-----|
-| type | Тип периода (ссылка на HolidayType) | integer |
+| type_id | Тип периода (ссылка на HolidayType) | integer |
 | is_active | Фильтр по статусу активности | boolean |
+| start_date_from | Фильтр по дате начала (от) | date |
+| start_date_to | Фильтр по дате начала (до) | date |
+| end_date_from | Фильтр по дате окончания (от) | date |
+| end_date_to | Фильтр по дате окончания (до) | date |
 
 Информация возвращается в виде списка VacationPeriod
 
@@ -170,7 +174,7 @@
 | name | string |
 | start_date | date |
 | end_date | date |
-| type | integer |
+| type_id | integer |
 | is_active | boolean |
 
 ### Работа с типами праздников (HolidayType)
@@ -274,5 +278,5 @@ erDiagram
         boolean is_active
     }
     
-    HOLIDAY ||--o{ HOLIDAY_TYPE : "type_id -> id"
-    VACATION_PERIOD ||--o{ HOLIDAY_TYPE : "type_id -> id"
+    HOLIDAY_TYPE ||--o{ HOLIDAY : "id → type_id"
+    HOLIDAY_TYPE ||--o{ VACATION_PERIOD : "id → type_id"
