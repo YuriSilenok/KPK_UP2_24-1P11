@@ -14,7 +14,7 @@ class AcademicPeriod(BaseModel):
     end_date = DateField(null=False)
     is_semester = BooleanField(default=False)
     is_module = BooleanField(default=False)
-    parent_period_id = OneToOneField('self', null=False, backref='child')
+    parent_period_id = ForeignKeyField('self', null=NULL, backref='child')
     is_active = BooleanField(default=True)
 
     class Meta:
