@@ -6,8 +6,7 @@ from peewee import (
     AutoField,
     ForeignKeyField,
     SqliteDatabase,
-    Check,
-    SQL
+    Check
 )
 
 # Подключение к локальной базе данных SQLite для Варианта 12
@@ -48,15 +47,14 @@ class Semester(BaseModel):
 
     class Meta:
         table_name = 'semesters'
-        constraints = [SQL('UNIQUE(semester)')]
 class Curriculums(BaseModel):
     """Запись учебного плана"""
     id = AutoField(primary_key=True)
 
-    # Внешние ключи с исправленным синтаксисом backref и проверкой на положительность ID (> 0)
-    group = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False, constraints=[Check('group_id > 0')])
-    discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', column_name='discipline_id', null=False, constraints=[Check('discipline_id > 0')])
-    semester = ForeignKeyField(Semester, backref='curriculums', on_delete='CASCADE', column_name='semester_id', null=False, constraints=[Check('semester_id > 0')])
+    # Имена полей синхронизированы с именами колонок по требованию преподавателя
+    group_id = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False)
+    discipline_id = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', column_name='discipline_id', null=False)
+    semester_id = ForeignKeyField(Semester, backref='curriculums', on_delete='CASCADE', column_name='semester_id', null=False)
 
     theory_hours = IntegerField(null=False, constraints=[Check('theory_hours >= 0')])
     practice_hours = IntegerField(null=False, constraints=[Check('practice_hours >= 0')])
@@ -66,15 +64,20 @@ class Curriculums(BaseModel):
 
     class Meta:
         table_name = 'curriculums'
+        # Ограничения уникальности и проверки на положительность ID уровня таблицы
         constraints = [
-            SQL('UNIQUE(group_id, discipline_id, semester_id)')
+            Check('group_id > 0'),
+            Check('discipline_id > 0'),
+            Check('semester_id > 0'),
+            Check('group_id IS NOT NULL AND discipline_id IS NOT NULL AND semester_id IS NOT NULL')
         ]
-        # Добавлены индексы для оптимизации фильтрации по часам теории, практики и статусу активности
-        indexes = (
+        # Исправлен синтаксис индексов Peewee: список кортежей (кортеж полей, уникальность)
+        indexes = [
             (('theory_hours',), False),
             (('practice_hours',), False),
             (('is_active',), False),
-        )
+            (('group_id', 'discipline_id', 'semester_id'), True)
+        ]
 
 
 def init_db():
