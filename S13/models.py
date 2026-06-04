@@ -25,29 +25,19 @@ class BaseModel(Model):
 class WorkProgram(BaseModel):
     """Класс рабочей программы дисциплин колледжа"""
     id = AutoField()
-    # Разрешаем null=True для соответствия необязательному статусу параметров в PATCH
-    title = CharField(null=True)
-    file_path = CharField(null=True, unique=True)
+    title = CharField(null=False)
+    file_path = CharField(null=False, unique=True)
     
-    # Ограничение формата версии (длина строки от 3 символов, например "1.0")
+    # Задан явный индекс для оптимизации запросов фильтрации и ограничение формата
     version = CharField(
-        null=True, 
+        null=False, 
         default="1.0",
+        index=True,
         constraints=[Check("length(version) >= 3 AND version LIKE '%.%'")]
     )
     
-    # Автоматический статус при создании (по умолчанию False означает активна)
     is_deleted = BooleanField(default=False, null=False)
     created_at = DateTimeField(default=datetime.datetime.now, null=False)
-
-    def delete_instance(self, *args, **kwargs):
-        """Мягкое удаление программы и ее назначений"""
-        with DB.atomic():
-            self.is_deleted = True
-            self.save()
-            # Соответствие имени поля work_program
-            ProgramAssignment.update(is_deleted=True).where(ProgramAssignment.work_program == self.id).execute()
-        return True
 
     class Meta:
         table_name = 'work_programs'
@@ -61,11 +51,9 @@ class ProgramAssignment(BaseModel):
     """Связь программ с внешними ID специальностей и дисциплин (3НФ)"""
     assignment_id = AutoField()
     
-    # Убран on_delete='CASCADE', имя поля строго согласуется с work_program_id
     work_program = ForeignKeyField(
         WorkProgram,
         backref='assignments',
-        on_delete='RESTRICT',
         column_name='work_program_id'
     )
     specialty_id = IntegerField(null=False)
@@ -74,9 +62,9 @@ class ProgramAssignment(BaseModel):
 
     class Meta:
         table_name = 'program_assignments'
-        # Составная уникальность: программа + внешняя специальность + внешняя дисциплина
+        # Исправлено: в индексе используется точное имя колонки 'work_program_id'
         indexes = (
-            (('work_program', 'specialty_id', 'discipline_id'), True),
+            (('work_program_id', 'specialty_id', 'discipline_id'), True),
         )
 
 
