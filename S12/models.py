@@ -47,35 +47,29 @@ class Semester(BaseModel):
 
     class Meta:
         table_name = 'semesters'
-class Curriculums(BaseModel):
-    """Запись учебного плана"""
+
+
+class Curriculum(BaseModel):
+    """Запись учебного плана (Класс унифицирован по названию в API)"""
     id = AutoField(primary_key=True)
 
-    # Имена полей синхронизированы с именами колонок по требованию преподавателя
+    # Чистые внешние ключи без избыточных проверок >0 уровня БД
     group_id = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False)
     discipline_id = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', column_name='discipline_id', null=False)
     semester_id = ForeignKeyField(Semester, backref='curriculums', on_delete='CASCADE', column_name='semester_id', null=False)
 
     theory_hours = IntegerField(null=False, constraints=[Check('theory_hours >= 0')])
     practice_hours = IntegerField(null=False, constraints=[Check('practice_hours >= 0')])
-    assessment_form = CharField(max_length=10, null=False, constraints=[Check("assessment_form IN ('exam', 'credit')")])
+    
+    # max_length удален, так как он отсутствовал в спецификации doc.md
+    assessment_form = CharField(null=False, constraints=[Check("assessment_form IN ('exam', 'credit')")])
 
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
         table_name = 'curriculums'
-        # Ограничения уникальности и проверки на положительность ID уровня таблицы
-        constraints = [
-            Check('group_id > 0'),
-            Check('discipline_id > 0'),
-            Check('semester_id > 0'),
-            Check('group_id IS NOT NULL AND discipline_id IS NOT NULL AND semester_id IS NOT NULL')
-        ]
-        # Исправлен синтаксис индексов Peewee: список кортежей (кортеж полей, уникальность)
+        # Оставлен только строго документированный индекс составной уникальности
         indexes = [
-            (('theory_hours',), False),
-            (('practice_hours',), False),
-            (('is_active',), False),
             (('group_id', 'discipline_id', 'semester_id'), True)
         ]
 
@@ -83,7 +77,7 @@ class Curriculums(BaseModel):
 def init_db():
     """Обязательная функция инициализации БД. Исключительно создает таблицы."""
     with db:
-        db.create_tables([Group, Discipline, Semester, Curriculums], safe=True)
+        db.create_tables([Group, Discipline, Semester, Curriculum], safe=True)
 
 
 if __name__ == "__main__":
