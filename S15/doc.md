@@ -86,14 +86,26 @@
 | is_active | bool |
 # LOAD_ASSIGNMENT Service (Вариант №15)
 
-## ER-Diagram
+# ER-Diagram
 
 ```mermaid
 erDiagram
-    LOAD_ASSIGNMENT {
+    ACADEMIC_TERMS {
+        int id PK
+        varchar name
+        date start_date
+        date end_date
+    }
+
+    LOAD_ASSIGNMENTS {
         int id PK
         int teacher_id
-        int discipline_id
+        int subject_id
         int group_id
-        bool is_active
+        int term_id FK
+        int hours
+        varchar assignment_type
     }
+
+    ACADEMIC_TERMS ||--o{ LOAD_ASSIGNMENTS : "defines duration for"
+```
