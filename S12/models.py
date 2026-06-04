@@ -51,8 +51,8 @@ class Semester(BaseModel):
         constraints = [SQL('UNIQUE(semester)')]
 
 
-class Curriculum(BaseModel):
-    """Запись учебного плана"""
+class Curriculums(BaseModel):
+    """Запись учебного плана (Класс переименован по требованию ТЗ)"""
     id = AutoField(primary_key=True)
 
     group = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False)
@@ -70,10 +70,12 @@ class Curriculum(BaseModel):
         constraints = [
             SQL('UNIQUE(group_id, discipline_id, semester_id)')
         ]
+
+
 def init_db():
     """Обязательная функция инициализации БД. Исключительно создает таблицы."""
     with db:
-        db.create_tables([Group, Discipline, Semester, Curriculum], safe=True)
+        db.create_tables([Group, Discipline, Semester, Curriculums], safe=True)
 
 
 if __name__ == "__main__":
