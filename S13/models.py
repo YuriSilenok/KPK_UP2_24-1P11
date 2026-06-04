@@ -6,6 +6,7 @@ from peewee import (
     IntegerField,
     BooleanField,
     AutoField,
+    DateTimeField,
     SqliteDatabase,
     ForeignKeyField,
     Check
@@ -43,8 +44,8 @@ class WorkProgram(BaseModel):
         with DB.atomic():
             self.is_deleted = True
             self.save()
-            # Каскадное логическое удаление зависимых записей
-            ProgramAssignment.update(is_deleted=True).where(ProgramAssignment.program == self.id).execute()
+            # Каскадное логическое обновление флага вместо жесткого удаления CASCADE
+            ProgramAssignment.update(is_deleted=True).where(ProgramAssignment.work_program == self.id).execute()
         return True
 
     class Meta:
@@ -58,10 +59,12 @@ class WorkProgram(BaseModel):
 class ProgramAssignment(BaseModel):
     """Связь программ с внешними ID специальностей и дисциплин (3НФ)"""
     assignment_id = AutoField()
-    program = ForeignKeyField(
+    
+    # on_delete изменен на RESTRICT для исключения жесткого физического каскадного удаления
+    work_program = ForeignKeyField(
         WorkProgram,
         backref='assignments',
-        on_delete='CASCADE',
+        on_delete='RESTRICT',
         column_name='work_program_id'
     )
     specialty_id = IntegerField(null=False)
@@ -72,7 +75,7 @@ class ProgramAssignment(BaseModel):
         table_name = 'program_assignments'
         # Составная уникальность: программа + внешняя специальность + внешняя дисциплина
         indexes = (
-            (('program', 'specialty_id', 'discipline_id'), True),
+            (('work_program', 'specialty_id', 'discipline_id'), True),
         )
 
 
