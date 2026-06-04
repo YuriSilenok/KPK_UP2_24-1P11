@@ -5,16 +5,10 @@
 **Обоснование нормализации**: База данных спроектирована и приведена к Третьей нормальной форме (3НФ). Все таблицы содержат только атомарные атрибуты, каждый неключевой показатель полностью зависит от первичного ключа (1НФ, 2НФ), и в структуре полностью отсутствуют транзитивные зависимости между неключевыми полями (3НФ).
 
 ### Список реляционных связей:
-- `groups.id` -> `curriculums.group_id`
-- `disciplines.id` -> `curriculums.discipline_id`
-- `semesters.id` -> `curriculums.semester_id`
+- `semesters.id` → `curriculums.semester_id`
 
 ```mermaid
 erDiagram
-    groups ||--o{ curriculums : "groups.id -> curriculums.group_id"
-    disciplines ||--o{ curriculums : "disciplines.id -> curriculums.discipline_id"
-    semesters ||--o{ curriculums : "semesters.id -> curriculums.semester_id"
-
     groups {
         int id PK
         string name UK
@@ -29,7 +23,7 @@ erDiagram
     
     semesters {
         int id PK
-        int semester UK
+        int semester UK "1-8"
         bool is_active
     }
     
@@ -43,6 +37,10 @@ erDiagram
         string assessment_form
         bool is_active
     }
+
+    groups ||--o{ curriculums : "groups.id → curriculums.group_id"
+    disciplines ||--o{ curriculums : "disciplines.id → curriculums.discipline_id"
+    semesters ||--o{ curriculums : "semesters.id → curriculums.semester_id"
 ```
 
 ---
@@ -88,8 +86,14 @@ erDiagram
 | is_active | bool |
 
 #### 3. Удалить сущность по ID (Group)
-* Сервис реализует **мягкое удаление** (логическое). При удалении поле `is_active` устанавливается в значение `false`.
-* **Выходные данные**: Логический статус операции `true` (если запись найдена и помечена удаленной) или `false` (если запись не найдена).
+* Логика: Реализует мягкое удаление. При удалении поле `is_active` устанавливается в значение `false`.
+
+**Выходные данные:**
+
+
+| Параметр (англ.) | Тип | Пояснение |
+| :--- | :--- | :--- |
+| success | bool | true (если запись найдена и помечена удаленной), иначе false |
 
 #### 4. Получить сущность по ID (Group)
 **Выходные данные:**
@@ -156,15 +160,21 @@ erDiagram
 **Выходные данные (при успешном изменении):**
 
 
-| Параметр (англ.) | Тип |
+| Параметр (англ.) | Type |
 | :--- | :--- |
 | id | int |
 | name | string |
 | is_active | bool |
 
 #### 3. Удалить сущность по ID (Discipline)
-* Сервис реализует **мягкое удаление** (логическое). При удалении поле `is_active` устанавливается в значение `false`.
-* **Выходные данные**: Логический статус операции `true` (если запись найдена и помечена удаленной) или `false` (если запись не найдена).
+* Логика: Реализует мягкое удаление. При удалении поле `is_active` устанавливается в значение `false`.
+
+**Выходные данные:**
+
+
+| Параметр (англ.) | Тип | Пояснение |
+| :--- | :--- | :--- |
+| success | bool | true (если запись найдена и помечена удаленной), иначе false |
 
 #### 4. Получить сущность по ID (Discipline)
 **Выходные данные:**
@@ -196,9 +206,6 @@ erDiagram
 | id | int |
 | name | string |
 | is_active | bool |
-
----
-
 ### Semester
 
 #### 1. Добавить сущность (Semester)
@@ -238,8 +245,14 @@ erDiagram
 | is_active | bool |
 
 #### 3. Удалить сущность по ID (Semester)
-* Сервис реализует **мягкое удаление** (логическое). При удалении поле `is_active` устанавливается в значение `false`.
-* **Выходные данные**: Логический статус операции `true` (если запись найдена и помечена удаленной) или `false` (если запись не найдена).
+* Логика: Реализует мягкое удаление. При удалении поле `is_active` устанавливается в значение `false`.
+
+**Выходные данные:**
+
+
+| Параметр (англ.) | Тип | Пояснение |
+| :--- | :--- | :--- |
+| success | bool | true (если запись найдена и помечена удаленной), иначе false |
 
 #### 4. Получить сущность по ID (Semester)
 **Выходные данные:**
@@ -287,7 +300,7 @@ erDiagram
 | semester_id | ID записи семестра | Да | int | Больше 0 | — |
 | theory_hours | Часы теории | Да | int | Неотрицательное (>= 0) | — |
 | practice_hours | Часы практики | Да | int | Неотрицательное (>= 0) | — |
-| assessment_form | Форма отчетности | Да | string | exam / credit | — |
+| assessment_form | Форма контроля | Да | string | exam / credit | — |
 
 * **Уникальные комбинации параметров**: `group_id` + `discipline_id` + `semester_id`
 
@@ -330,8 +343,14 @@ erDiagram
 | is_active | bool |
 
 #### 3. Удалить сущность по ID (Curriculum)
-* Сервис реализует **мягкое удаление** (логическое). При удалении поле `is_active` устанавливается в значение `false`.
-* **Выходные данные**: Логический статус операции `true` (если запись найдена и помечена удаленной) или `false` (если запись не найдена).
+* Логика: Реализует мягкое удаление. При удалении поле `is_active` устанавливается в значение `false`.
+
+**Выходные данные:**
+
+
+| Параметр (англ.) | Тип | Пояснение |
+| :--- | :--- | :--- |
+| success | bool | true (если запись найдена и помечена удаленной), иначе false |
 
 #### 4. Получить сущность по ID (Curriculum)
 **Выходные данные:**
@@ -358,3 +377,25 @@ erDiagram
 | group_id | Фильтр по ID группы | int |
 | discipline_id | Фильтр по ID дисциплины | int |
 | semester_id | Фильтр по ID семестра | int |
+| theory_hours_min | Минимальное количество часов теории | int |
+| theory_hours_max | Максимальное количество часов теории | int |
+| practice_hours_min | Минимальное количество часов практики | int |
+| practice_hours_max | Максимальное количество часов практики | int |
+| assessment_form | Фильтр по форме отчетности | string |
+| is_active | Фильтр по активности | bool |
+| page | Номер страницы пагинации | int |
+| page_size | Количество элементов на странице | int |
+
+**Возвращаемый список:**
+
+
+| Параметр (англ.) | Тип |
+| :--- | :--- |
+| id | int |
+| group_id | int |
+| discipline_id | int |
+| semester_id | int |
+| theory_hours | int |
+| practice_hours | int |
+| assessment_form | string |
+| is_active | bool |
