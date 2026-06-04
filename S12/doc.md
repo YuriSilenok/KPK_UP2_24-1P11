@@ -5,7 +5,7 @@
 **Обоснование нормализации**: База данных спроектирована и приведена к Третьей нормальной форме (3НФ). Все таблицы содержат только атомарные атрибуты, каждый неключевой показатель полностью зависит от первичного ключа (1НФ, 2НФ), и в структуре полностью отсутствуют транзитивные зависимости между неключевыми полями (3НФ).
 
 ### Список реляционных связей:
-- `semesters.id` → `curriculums.semester_id`
+- `semesters.id` → `curriculum.semester_id`
 
 ```mermaid
 erDiagram
@@ -24,7 +24,7 @@ erDiagram
         int semester UK "1-8"
         bool is_active
     }
-    curriculums {
+    curriculum {
         int id PK
         int group_id FK
         int discipline_id FK
@@ -35,9 +35,9 @@ erDiagram
         bool is_active
     }
 
-    groups ||--o{ curriculums : "groups.id → curriculums.group_id"
-    disciplines ||--o{ curriculums : "disciplines.id → curriculums.discipline_id"
-    semesters ||--o{ curriculums : "semesters.id → curriculums.semester_id"
+    groups ||--o{ curriculum : "groups.id → curriculum.group_id"
+    disciplines ||--o{ curriculum : "disciplines.id → curriculum.discipline_id"
+    semesters ||--o{ curriculum : "semesters.id → curriculum.semester_id"
 ```
 
 ---
@@ -319,9 +319,6 @@ erDiagram
 
 | Параметр (англ.) | Пояснение | Обязательность | Тип | Ограничение |
 | :--- | :--- | :--- | :--- | :--- |
-| group_id | ID академической группы | Нет | int | Изменение запрещено |
-| discipline_id | ID учебной дисциплины | Нет | int | Изменение запрещено |
-| semester_id | ID записи семестра | Нет | int | Изменение запрещено |
 | theory_hours | Новые часы теории | Нет | int | Неотрицательное (>= 0) |
 | practice_hours | Новые часы практики | Нет | int | Неотрицательное (>= 0) |
 | assessment_form | Новая форма отчетности | Нет | string | exam / credit |
@@ -375,8 +372,6 @@ erDiagram
 | group_id | Фильтр по ID группы | int |
 | discipline_id | Фильтр по ID дисциплины | int |
 | semester_id | Фильтр по ID семестра | int |
-| theory_hours | Фильтр по количеству часов теории | int |
-| practice_hours | Фильтр по количеству часов практики | int |
 | assessment_form | Фильтр по форме отчетности | string |
 | is_active | Фильтр по активности | bool |
 
