@@ -10,7 +10,7 @@ from peewee import (
     SQL
 )
 
-# Подключение к локальной базе данных SQLite
+# Подключение к локальной базе данных SQLite для Варианта 12
 db = SqliteDatabase('curriculum_service_s12.db')
 
 
@@ -27,7 +27,7 @@ class Group(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'groups'
+        table_name = 'group'
 
 
 class Discipline(BaseModel):
@@ -37,7 +37,7 @@ class Discipline(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'disciplines'
+        table_name = 'discipline'
 
 
 class Semester(BaseModel):
@@ -47,7 +47,7 @@ class Semester(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'semesters'
+        table_name = 'semester'
         constraints = [SQL('UNIQUE(semester)')]
 
 
@@ -55,7 +55,6 @@ class Curriculum(BaseModel):
     """Запись учебного плана"""
     id = AutoField(primary_key=True)
 
-    # Связи через ForeignKeyField в едином регистре и стиле
     group = ForeignKeyField(Group, backref='curriculums', on_delete='CASCADE', column_name='group_id', null=False)
     discipline = ForeignKeyField(Discipline, backref='curriculums', on_delete='CASCADE', column_name='discipline_id', null=False)
     semester = ForeignKeyField(Semester, backref='curriculums', on_delete='CASCADE', column_name='semester_id', null=False)
@@ -67,12 +66,10 @@ class Curriculum(BaseModel):
     is_active = BooleanField(default=True, null=False)
 
     class Meta:
-        table_name = 'curriculums'
+        table_name = 'curriculum'
         constraints = [
             SQL('UNIQUE(group_id, discipline_id, semester_id)')
         ]
-
-
 def init_db():
     """Обязательная функция инициализации БД. Исключительно создает таблицы."""
     with db:
